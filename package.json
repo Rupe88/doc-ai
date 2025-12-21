@@ -14,6 +14,9 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
+  "engines": {
+    "node": ">=20 <21"
+  },
   "dependencies": {
     "@babel/parser": "^7.23.7",
     "@babel/traverse": "^7.23.7",
