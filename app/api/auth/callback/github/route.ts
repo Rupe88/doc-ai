@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma'
 import { encrypt } from '@/lib/security/encryption'
 import { logger } from '@/lib/utils/logger'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')

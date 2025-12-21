@@ -5,6 +5,8 @@ import { decrypt } from '@/lib/security/encryption'
 import { createApiHandler, requireUser } from '@/lib/utils/api-wrapper'
 import { successResponse, ValidationError, ExternalServiceError } from '@/lib/utils/error-handler'
 
+export const dynamic = 'force-dynamic'
+
 export const GET = createApiHandler(
   async (context) => {
     const user = requireUser(context)

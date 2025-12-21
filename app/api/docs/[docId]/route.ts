@@ -4,6 +4,8 @@ import { createApiHandler, requireUser, getRouteParams } from '@/lib/utils/api-w
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const docIdSchema = z.object({
   docId: z.string().cuid('Invalid document ID'),
 })

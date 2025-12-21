@@ -16,6 +16,8 @@ import { createApiHandler, requireUser, getRequestBody } from '@/lib/utils/api-w
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
   sessionId: z.string().optional(),

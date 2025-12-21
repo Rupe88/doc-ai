@@ -4,6 +4,8 @@ import { createApiHandler, requireUser, getRouteParams, getQueryParams } from '@
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const repoIdSchema = z.object({
   repoId: z.string().cuid('Invalid repository ID'),
 })

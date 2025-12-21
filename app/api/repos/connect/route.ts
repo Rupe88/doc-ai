@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/prisma'
 import { GitHubService } from '@/lib/github/service'
 import { decrypt } from '@/lib/security/encryption'
 import { createApiHandler, requireUser, getRequestBody } from '@/lib/utils/api-wrapper'
+
+export const dynamic = 'force-dynamic'
 import { successResponse, ValidationError, ExternalServiceError, NotFoundError } from '@/lib/utils/error-handler'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'

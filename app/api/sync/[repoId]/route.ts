@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/prisma'
 import { JobProcessor } from '@/lib/queue/job-processor'
 import { decrypt } from '@/lib/security/encryption'
 import { createApiHandler, requireUser, getRouteParams } from '@/lib/utils/api-wrapper'
+
+export const dynamic = 'force-dynamic'
 import { successResponse, NotFoundError, ValidationError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { z } from 'zod'
 

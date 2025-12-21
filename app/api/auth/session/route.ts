@@ -3,6 +3,8 @@ import { getAuthenticatedUser } from '@/lib/middleware/auth'
 import { createApiHandler } from '@/lib/utils/api-wrapper'
 import { successResponse } from '@/lib/utils/error-handler'
 
+export const dynamic = 'force-dynamic'
+
 export const GET = createApiHandler(
   async (context) => {
     const authResult = await getAuthenticatedUser(context.request)

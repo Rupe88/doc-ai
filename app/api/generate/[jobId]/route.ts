@@ -4,6 +4,8 @@ import { createApiHandler, requireUser, getRouteParams } from '@/lib/utils/api-w
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic'
+
 const jobIdSchema = z.object({
   jobId: z.string().cuid('Invalid job ID'),
 })

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/db/prisma'
 import { getAIProviderWithFallback } from '@/lib/ai/providers/factory'

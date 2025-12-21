@@ -3,6 +3,8 @@ import { PaddleClient } from '@/lib/paddle/client'
 import { prisma } from '@/lib/db/prisma'
 import { createApiHandler, getRequestBody } from '@/lib/utils/api-wrapper'
 import { successResponse, ValidationError, ExternalServiceError } from '@/lib/utils/error-handler'
+
+export const dynamic = 'force-dynamic'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
 

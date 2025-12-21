@@ -4,6 +4,8 @@ import { createApiHandler } from '@/lib/utils/api-wrapper'
 import { successResponse } from '@/lib/utils/error-handler'
 import { logger } from '@/lib/utils/logger'
 
+export const dynamic = 'force-dynamic'
+
 export const GET = createApiHandler(
   async (context) => {
     if (!context.user) {

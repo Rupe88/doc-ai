@@ -3,6 +3,8 @@ import { CodeSearch } from '@/lib/search/code-search'
 import { prisma } from '@/lib/db/prisma'
 import { createApiHandler, requireUser, getRequestBody } from '@/lib/utils/api-wrapper'
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
+
+export const dynamic = 'force-dynamic'
 import { z } from 'zod'
 
 const codeSearch = new CodeSearch()

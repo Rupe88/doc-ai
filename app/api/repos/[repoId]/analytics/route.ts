@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/db/prisma'
 import { createApiHandler, requireUser } from '@/lib/utils/api-wrapper'
