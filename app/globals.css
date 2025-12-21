@@ -1,0 +1,395 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Modern dark theme - inspired by Linear/Raycast */
+  --background: 8 8 12;
+  --foreground: 250 250 255;
+  --card: 14 14 20;
+  --card-foreground: 250 250 255;
+  --popover: 14 14 20;
+  --popover-foreground: 250 250 255;
+  --primary: 99 102 241;
+  --primary-foreground: 255 255 255;
+  --secondary: 30 30 40;
+  --secondary-foreground: 250 250 255;
+  --muted: 30 30 45;
+  --muted-foreground: 140 140 160;
+  --accent: 45 45 60;
+  --accent-foreground: 250 250 255;
+  --destructive: 239 68 68;
+  --destructive-foreground: 250 250 255;
+  --border: 45 45 60;
+  --input: 30 30 45;
+  --ring: 99 102 241;
+  --radius: 0.75rem;
+  
+  /* Gradient colors */
+  --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--accent));
+}
+
+/* Glass morphism utilities */
+.glass {
+  background: rgba(20, 20, 30, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(25, 25, 35, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+  background: rgba(30, 30, 40, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #a78bfa 0%, #ec4899 50%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-blue {
+  background: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-purple {
+  background: linear-gradient(135deg, #c084fc 0%, #f472b6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient borders */
+.gradient-border {
+  position: relative;
+  background: rgb(var(--card));
+  border-radius: var(--radius);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.5), rgba(236, 72, 153, 0.5), rgba(249, 115, 22, 0.5));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Glow effects */
+.glow {
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 60px rgba(168, 85, 247, 0.4);
+}
+
+.glow-blue {
+  box-shadow: 0 0 60px rgba(59, 130, 246, 0.4);
+}
+
+.glow-green {
+  box-shadow: 0 0 60px rgba(34, 197, 94, 0.4);
+}
+
+/* Noise texture overlay */
+.noise {
+  position: relative;
+}
+
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+/* Grid pattern background */
+.grid-pattern {
+  background-image: 
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Animated gradient background */
+.animated-gradient {
+  background: linear-gradient(-45deg, #0a0a12, #1a1a2e, #16213e, #0f0f1a);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse glow animation */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Shine effect */
+@keyframes shine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(200%) rotate(45deg); }
+}
+
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shine 3s ease-in-out infinite;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl;
+  @apply hover:from-indigo-600 hover:to-purple-700 transition-all duration-300;
+  @apply shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30;
+  @apply hover:-translate-y-0.5;
+}
+
+.btn-secondary {
+  @apply px-6 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl;
+  @apply hover:bg-white/10 hover:border-white/20 transition-all duration-300;
+}
+
+.btn-ghost {
+  @apply px-4 py-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all;
+}
+
+/* Card styles */
+.card {
+  @apply bg-slate-900/50 border border-slate-800/50 rounded-2xl;
+  @apply backdrop-blur-xl;
+}
+
+.card-hover {
+  @apply card hover:border-slate-700/50 hover:bg-slate-900/70;
+  @apply transition-all duration-300 hover:-translate-y-1;
+}
+
+/* Input styles */
+.input {
+  @apply w-full px-4 py-3 bg-slate-900/50 border border-slate-800;
+  @apply rounded-xl text-white placeholder-slate-500;
+  @apply focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20;
+  @apply transition-all duration-300;
+}
+
+/* Badge styles */
+.badge {
+  @apply px-2.5 py-0.5 text-xs font-medium rounded-full;
+}
+
+.badge-success {
+  @apply badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+}
+
+.badge-warning {
+  @apply badge bg-amber-500/10 text-amber-400 border border-amber-500/20;
+}
+
+.badge-danger {
+  @apply badge bg-red-500/10 text-red-400 border border-red-500/20;
+}
+
+.badge-info {
+  @apply badge bg-blue-500/10 text-blue-400 border border-blue-500/20;
+}
+
+/* Code block styles */
+.code-block {
+  @apply bg-slate-950 rounded-xl border border-slate-800 overflow-hidden;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.code-block pre {
+  @apply p-4 overflow-x-auto text-sm;
+}
+
+/* Markdown content styles */
+.prose-dark {
+  @apply text-slate-300;
+}
+
+.prose-dark h1,
+.prose-dark h2,
+.prose-dark h3,
+.prose-dark h4 {
+  @apply text-white font-semibold;
+}
+
+.prose-dark h1 { @apply text-3xl mb-6; }
+.prose-dark h2 { @apply text-2xl mb-4 mt-8; }
+.prose-dark h3 { @apply text-xl mb-3 mt-6; }
+
+.prose-dark p { @apply mb-4 leading-relaxed; }
+.prose-dark ul { @apply list-disc list-inside mb-4 space-y-2; }
+.prose-dark ol { @apply list-decimal list-inside mb-4 space-y-2; }
+.prose-dark li { @apply text-slate-300; }
+
+.prose-dark code {
+  @apply px-1.5 py-0.5 bg-slate-800 rounded text-indigo-300;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875em;
+}
+
+.prose-dark pre code {
+  @apply p-0 bg-transparent;
+}
+
+.prose-dark a {
+  @apply text-indigo-400 hover:text-indigo-300 underline underline-offset-2;
+}
+
+.prose-dark blockquote {
+  @apply border-l-4 border-indigo-500 pl-4 italic text-slate-400 my-4;
+}
+
+.prose-dark table {
+  @apply w-full border-collapse mb-6;
+}
+
+.prose-dark th {
+  @apply text-left p-3 bg-slate-800/50 border border-slate-700 font-semibold text-white;
+}
+
+.prose-dark td {
+  @apply p-3 border border-slate-800 text-slate-300;
+}
+
+/* Utility classes */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400;
+}
+
+.border-gradient {
+  border-image: linear-gradient(135deg, #6366f1, #a855f7, #ec4899) 1;
+}
+
+/* Selection styles */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: white;
+}
+
+/* Focus visible styles */
+:focus-visible {
+  outline: 2px solid rgb(99, 102, 241);
+  outline-offset: 2px;
+}
+
+/* Loading skeleton */
+.skeleton {
+  @apply animate-pulse bg-slate-800 rounded;
+}
+
+/* Sidebar navigation */
+.nav-item {
+  @apply flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400;
+  @apply hover:text-white hover:bg-white/5 transition-all duration-200;
+}
+
+.nav-item.active {
+  @apply text-white bg-white/10;
+}
+
+/* Status indicators */
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-dot-success { @apply bg-emerald-400 shadow-lg shadow-emerald-400/50; }
+.status-dot-warning { @apply bg-amber-400 shadow-lg shadow-amber-400/50; }
+.status-dot-error { @apply bg-red-400 shadow-lg shadow-red-400/50; }
+.status-dot-info { @apply bg-blue-400 shadow-lg shadow-blue-400/50; }

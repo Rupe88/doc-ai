@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  // Note: DIRECT_URL is optional - if not set, Prisma will use DATABASE_URL
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  image             String?
+  githubId          String?   @unique
+  githubToken       String?   // Encrypted
+  paddleCustomerId  String?   @unique
+  subscriptionTier  String    @default("FREE") // FREE, PRO, TEAM, ENTERPRISE
+  subscriptionStatus String   @default("ACTIVE")
+  subscriptionEndsAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  repos             Repo[]
+  docs              Doc[]
+  chatSessions      ChatSession[]
+  sessions          Session[]
+  
+  @@index([email])
+  @@index([githubId])
+  @@index([subscriptionTier])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model Repo {
+  id            String    @id @default(cuid())
+  userId        String
+  githubRepoId  Int       @unique
+  name          String
+  fullName      String    // owner/repo
+  description   String?
+  language      String?
+  isPrivate     Boolean
+  defaultBranch String    @default("main")
+  lastCommitSha String?
+  lastSyncedAt  DateTime?
+  status        String    @default("PENDING") // PENDING, ANALYZING, READY, ERROR
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  docs          Doc[]
+  webhookId     Int?      // GitHub webhook ID
+  analysisJobs  AnalysisJob[]
+  codeIndex     CodeIndex?
+  
+  @@index([userId, status])
+  @@index([lastSyncedAt])
+  @@index([githubRepoId])
+}
+
+model CodeIndex {
+  id            String    @id @default(cuid())
+  repoId        String    @unique
+  symbols       Json      // Indexed symbols (functions, classes, etc.)
+  fileTree      Json      // File tree structure
+  searchIndex   Json      // Full-text search index
+  lastIndexedAt DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  repo          Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  
+  @@index([repoId])
+}
+
+model Doc {
+  id            String    @id @default(cuid())
+  repoId        String
+  userId        String
+  title         String
+  slug          String
+  content       String    // Markdown
+  type          String    // FUNCTION, CLASS, API, ARCHITECTURE, OVERVIEW
+  filePath      String?
+  lineStart     Int?
+  lineEnd       Int?
+  metadata      Json?     // Analysis metadata
+  publicUrl     String?   @unique
+  isPublic      Boolean   @default(false)
+  version       Int       @default(1)
+  commitSha     String?
+  branch        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  repo          Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vectorChunks  VectorChunk[]
+  versions      DocVersion[]
+  
+  @@index([repoId, type])
+  @@index([publicUrl])
+  @@unique([repoId, slug, version])
+  @@index([userId])
+  @@index([version])
+  @@index([commitSha])
+}
+
+model DocVersion {
+  id            String    @id @default(cuid())
+  docId         String
+  version       Int
+  content       String    // Markdown
+  commitSha     String?
+  branch        String?
+  changeType    String    // CREATED, UPDATED, DELETED
+  diff          Json?     // Change diff
+  createdAt     DateTime  @default(now())
+  
+  doc           Doc       @relation(fields: [docId], references: [id], onDelete: Cascade)
+  
+  @@index([docId, version])
+  @@unique([docId, version])
+}
+
+model VectorChunk {
+  id            String    @id @default(cuid())
+  repoId        String
+  docId         String?
+  content       String
+  embedding     Json      // Vector embedding
+  metadata      Json      // File path, function name, etc.
+  createdAt     DateTime  @default(now())
+  
+  doc           Doc?      @relation(fields: [docId], references: [id], onDelete: Cascade)
+  
+  @@index([repoId])
+  @@index([docId])
+}
+
+model ChatSession {
+  id            String    @id @default(cuid())
+  userId        String
+  repoId        String?
+  messages      Json      // Array of messages
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([repoId])
+}
+
+model AnalysisJob {
+  id            String    @id @default(cuid())
+  repoId        String
+  status        String    // PENDING, PROCESSING, COMPLETED, FAILED
+  progress      Int       @default(0)
+  error         String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  
+  repo          Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  
+  @@index([repoId, status])
+  @@index([status])
+}
+
