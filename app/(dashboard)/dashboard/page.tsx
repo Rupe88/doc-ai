@@ -72,58 +72,62 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
-                Your Repositories
-              </h1>
-              <p className="text-muted-foreground">
-                Connect repositories and generate documentation automatically
-              </p>
-            </div>
-            <Button
-              asChild
-              className="bg-foreground hover:bg-foreground/90 text-background"
-            >
-              <Link href="/api/github/connect">
-                <Plus className="w-4 h-4 mr-2" />
-                Connect Repo
-              </Link>
-            </Button>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
-              {error}
-            </div>
-          )}
-
-          {/* Search */}
+    <div className="min-h-screen bg-black text-white">
+      {/* Header */}
+      <div className="border-b border-gray-600 bg-gray-900">
+        <div className="px-8 py-6">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="relative"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search repositories..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:border-foreground/50 transition-colors"
-            />
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-white mb-1">
+                  Repositories
+                </h1>
+                <p className="text-sm text-gray-400">
+                  {repos.length} repositories
+                </p>
+              </div>
+              <Button
+                asChild
+                className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
+              >
+                <Link href="/api/github/connect">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New
+                </Link>
+              </Button>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mt-4 p-4 bg-red-900/20 border border-red-600/30 rounded-md text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Search */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mt-4 relative max-w-md"
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Find a repository..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
+      </div>
+
+      <div className="px-8 py-8">
 
         {/* Stats */}
         {repos.length > 0 && (
@@ -131,27 +135,26 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
           >
             {[
-              { label: 'Total Repos', value: repos.length, icon: Sparkles },
-              { label: 'Documented', value: repos.filter((r) => r.connected && r.status === 'READY').length, icon: TrendingUp },
-              { label: 'In Progress', value: repos.filter((r) => r.connected && r.status === 'ANALYZING').length, icon: TrendingUp },
+              { label: 'Total', value: repos.length, icon: Sparkles, color: 'text-white' },
+              { label: 'Documented', value: repos.filter((r) => r.connected && r.status === 'READY').length, icon: TrendingUp, color: 'text-green-400' },
+              { label: 'In Progress', value: repos.filter((r) => r.connected && r.status === 'ANALYZING').length, icon: TrendingUp, color: 'text-yellow-400' },
             ].map((stat, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + index * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-                className="bg-card border border-border rounded-xl p-6 shadow-github"
+                className="bg-gray-800 border border-gray-600 rounded-md p-4 shadow-lg hover:shadow-xl transition-shadow"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-muted-foreground text-sm mb-1">{stat.label}</p>
-                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-gray-400 text-sm">{stat.label}</p>
+                    <p className={`text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
                   </div>
-                  <stat.icon className="w-8 h-8 text-foreground" />
+                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
                 </div>
               </motion.div>
             ))}
@@ -164,7 +167,7 @@ export default function DashboardPage() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="w-12 h-12 border-4 border-foreground border-t-transparent rounded-full"
+              className="w-8 h-8 border-2 border-github-active border-t-transparent rounded-full"
             />
           </div>
         ) : filteredRepos.length === 0 ? (
@@ -173,18 +176,18 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-20"
           >
-            <Sparkles className="w-16 h-16 text-foreground mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-foreground mb-2">No repositories yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Connect your first GitHub repository to get started
+            <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No repositories</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              Get started by connecting your first repository.
             </p>
             <Button
               asChild
-              className="bg-foreground hover:bg-foreground/90 text-background"
+              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
             >
               <Link href="/api/github/connect">
                 <Plus className="w-4 h-4 mr-2" />
-                Connect Repository
+                Add repository
               </Link>
             </Button>
           </motion.div>
@@ -193,15 +196,14 @@ export default function DashboardPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="space-y-4"
           >
             {filteredRepos.map((repo, index) => (
               <motion.div
                 key={repo.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + index * 0.1 }}
-                whileHover={{ y: -5 }}
+                transition={{ delay: 0.4 + index * 0.05 }}
               >
                 <RepoCard repo={repo} />
               </motion.div>

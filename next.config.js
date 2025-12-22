@@ -42,7 +42,7 @@ const nextConfig = {
     return config
   },
     // Exclude problematic packages from server-side rendering
-  serverExternalPackages: [
+    serverComponentsExternalPackages: [
     '@xenova/transformers',
     'onnxruntime-node',
     'madge',

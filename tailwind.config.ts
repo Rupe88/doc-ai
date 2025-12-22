@@ -43,6 +43,14 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        // GitHub-specific colors
+        github: {
+          hover: "hsl(var(--github-hover))",
+          active: "hsl(var(--github-active))",
+          success: "hsl(var(--github-success))",
+          warning: "hsl(var(--github-warning))",
+          danger: "hsl(var(--github-danger))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

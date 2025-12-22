@@ -8,17 +8,17 @@ import Link from 'next/link'
 export function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center">
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-card border border-border mb-8 shadow-github"
+            className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-600/10 border border-blue-600/20 mb-8"
           >
-            <Sparkles className="w-4 h-4 text-foreground" />
-            <span className="text-sm text-foreground">AI-Powered Documentation</span>
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span className="text-sm text-blue-400 font-medium">AI-Powered Documentation</span>
           </motion.div>
 
           {/* Main Heading */}
@@ -26,11 +26,11 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold mb-6 text-foreground"
+            className="text-4xl md:text-6xl font-bold mb-6 text-foreground leading-tight"
           >
-            Generate In-Depth Docs
+            Generate comprehensive docs
             <br />
-            Automatically
+            <span className="text-blue-400">automatically</span>
           </motion.h1>
 
           {/* Subheading */}
@@ -38,7 +38,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12"
+            className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
           >
             The only documentation tool that auto-generates comprehensive, AI-powered docs
             with deep code analysis, security scanning, and natural language understanding.
@@ -49,25 +49,25 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
           >
             <Button
               asChild
               size="lg"
-              className="bg-foreground hover:bg-foreground/90 text-background text-lg px-8 py-6 rounded-lg shadow-github-lg group"
+              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg group"
             >
               <Link href="/api/github/connect">
-                Get Started Free
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                Get started
+                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
             <Button
               asChild
               variant="outline"
               size="lg"
-              className="border-border text-foreground hover:bg-card text-lg px-8 py-6 rounded-lg"
+              className="border-gray-600 text-white hover:bg-gray-800 hover:border-gray-500"
             >
-              <Link href="/#features">View Features</Link>
+              <Link href="/#features">View features</Link>
             </Button>
           </motion.div>
 
@@ -76,24 +76,23 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto"
           >
             {[
-              { icon: Zap, text: '10x Faster', subtext: 'Auto-generate docs' },
-              { icon: Code2, text: 'AI-Powered', subtext: 'Deep code analysis' },
-              { icon: Sparkles, text: 'In-Depth', subtext: 'Comprehensive docs' },
+              { icon: Zap, text: '10x faster', subtext: 'Auto-generate docs' },
+              { icon: Code2, text: 'AI-powered', subtext: 'Deep code analysis' },
+              { icon: Sparkles, text: 'In-depth', subtext: 'Comprehensive docs' },
             ].map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                whileHover={{ scale: 1.05, y: -5 }}
-                className="bg-card border border-border rounded-xl p-6 hover:shadow-github transition-all"
+                className="bg-card border border-border rounded-md p-4 hover:shadow-github transition-all hover-github"
               >
-                <feature.icon className="w-8 h-8 text-foreground mb-3 mx-auto" />
-                <h3 className="text-foreground font-semibold mb-1">{feature.text}</h3>
-                <p className="text-muted-foreground text-sm">{feature.subtext}</p>
+                <feature.icon className="w-6 h-6 text-blue-400 mb-2 mx-auto" />
+                <h3 className="text-foreground font-semibold text-sm mb-1">{feature.text}</h3>
+                <p className="text-muted-foreground text-xs">{feature.subtext}</p>
               </motion.div>
             ))}
           </motion.div>

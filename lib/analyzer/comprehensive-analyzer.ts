@@ -260,6 +260,8 @@ export class ComprehensiveAnalyzer {
     
     // Security & Quality Analysis
     const { securityIssues, vulnerabilities, securityScore } = this.analyzeSecurityIssues()
+    const dependencyVulnerabilities = this.analyzeDependencyVulnerabilities(dependencies, devDependencies)
+    const allVulnerabilities = [...vulnerabilities, ...dependencyVulnerabilities]
     const { qualityScore, patterns } = this.analyzeCodeQuality(functions, classes)
 
     console.log(`[ComprehensiveAnalyzer] Found:
@@ -276,6 +278,7 @@ export class ComprehensiveAnalyzer {
       - ${hooks.length} hooks
       - ${components.length} components
       - ${securityIssues.length} security issues
+      - ${allVulnerabilities.length} total vulnerabilities
       - Security Score: ${securityScore}/100
       - Quality Score: ${qualityScore}/100
     `)
@@ -299,11 +302,68 @@ export class ComprehensiveAnalyzer {
       devDependencies,
       stats,
       securityIssues,
-      vulnerabilities,
+      vulnerabilities: allVulnerabilities,
       securityScore,
       qualityScore,
       patterns,
     }
+  }
+
+  private analyzeDependencyVulnerabilities(dependencies: DependencyInfo[], devDependencies: DependencyInfo[]): Vulnerability[] {
+    const vulnerabilities: Vulnerability[] = []
+
+    // Known vulnerable packages (simplified database)
+    const vulnerabilityDB: Record<string, { severity: string; description: string; cwe: string }[]> = {
+      'lodash': [
+        { severity: 'MEDIUM', description: 'Prototype pollution vulnerability in older versions', cwe: 'CWE-1321' }
+      ],
+      'axios': [
+        { severity: 'HIGH', description: 'Potential SSRF in redirect handling', cwe: 'CWE-918' }
+      ],
+      'minimatch': [
+        { severity: 'HIGH', description: 'Regular expression denial of service', cwe: 'CWE-400' }
+      ],
+      'node-forge': [
+        { severity: 'CRITICAL', description: 'RSA signature forgery vulnerability', cwe: 'CWE-347' }
+      ],
+      'ua-parser-js': [
+        { severity: 'HIGH', description: 'Regular expression denial of service', cwe: 'CWE-400' }
+      ],
+      'jsonwebtoken': [
+        { severity: 'HIGH', description: 'JWT algorithm confusion', cwe: 'CWE-347' }
+      ],
+      'express-fileupload': [
+        { severity: 'HIGH', description: 'Directory traversal vulnerability', cwe: 'CWE-22' }
+      ],
+    }
+
+    const allDeps = [...dependencies, ...devDependencies]
+
+    for (const dep of allDeps) {
+      const vulnList = vulnerabilityDB[dep.name]
+      if (vulnList) {
+        for (const vuln of vulnList) {
+          // Basic version checking (simplified - in real implementation would use proper semver)
+          if (this.isVersionVulnerable(dep.version, vuln)) {
+            vulnerabilities.push({
+              name: `${dep.name} Security Vulnerability`,
+              severity: vuln.severity as Vulnerability['severity'],
+              description: `${dep.name}@${dep.version}: ${vuln.description}`,
+              file: 'package.json',
+              cwe: vuln.cwe,
+            })
+          }
+        }
+      }
+    }
+
+    return vulnerabilities
+  }
+
+  private isVersionVulnerable(version: string, vuln: any): boolean {
+    // Simplified version checking - in production, use proper semver comparison
+    // For now, assume any version could be vulnerable
+    return true
   }
 
   private analyzeSecurityIssues(): { securityIssues: SecurityIssue[]; vulnerabilities: Vulnerability[]; securityScore: number } {
@@ -317,179 +377,476 @@ export class ComprehensiveAnalyzer {
       lines.forEach((line, index) => {
         const lineNum = index + 1
 
-        // Check for hardcoded secrets
-        if (/(?:password|secret|api[_-]?key|token)\s*[:=]\s*['"][^'"]+['"]/i.test(line)) {
+        // Check for hardcoded secrets - Enhanced patterns
+        if (/(?:password|secret|api[_-]?key|token|auth[_-]?key|access[_-]?key|private[_-]?key)\s*[:=]\s*['"][^'"]{8,}['"]/i.test(line) ||
+            /(?:JWT_SECRET|DATABASE_URL|AWS_ACCESS_KEY|STRIPE_SECRET)\s*[:=]/i.test(line)) {
           securityIssues.push({
             type: 'HARDCODED_SECRET',
             severity: 'CRITICAL',
-            message: 'Potential hardcoded secret detected',
+            message: 'Hardcoded sensitive credential detected',
             filePath: file.path,
             line: lineNum,
-            recommendation: 'Use environment variables instead',
+            recommendation: 'Move to environment variables or secure vault',
           })
         }
 
-        // Check for SQL injection
-        if (/\$\{.*\}.*(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)/i.test(line) ||
-            /['"].*\+.*(?:SELECT|INSERT|UPDATE|DELETE)/i.test(line)) {
+        // Check for SQL injection - More comprehensive
+        if (/\$\{.*\}.*(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|DROP|CREATE|ALTER)/i.test(line) ||
+            /['"].*\+.*(?:SELECT|INSERT|UPDATE|DELETE)/i.test(line) ||
+            /(?:query|execute)\s*\(\s*`.*\$\{.*\}.*`/i.test(line)) {
           vulnerabilities.push({
             name: 'SQL Injection',
             severity: 'HIGH',
-            description: 'Potential SQL injection vulnerability',
+            description: 'Potential SQL injection vulnerability through string concatenation or template literals',
             file: file.path,
             line: lineNum,
             cwe: 'CWE-89',
           })
         }
 
-        // Check for XSS
-        if (/dangerouslySetInnerHTML|innerHTML\s*=/i.test(line)) {
+        // Check for XSS - Enhanced patterns
+        if (/dangerouslySetInnerHTML|innerHTML\s*=/i.test(line) ||
+            /document\.write\s*\(/i.test(line) ||
+            /window\.location\.href\s*\+/i.test(line)) {
           vulnerabilities.push({
-            name: 'XSS',
-            severity: 'MEDIUM',
-            description: 'Potential XSS vulnerability via dangerouslySetInnerHTML or innerHTML',
+            name: 'Cross-Site Scripting (XSS)',
+            severity: 'HIGH',
+            description: 'Potential XSS vulnerability via DOM manipulation',
             file: file.path,
             line: lineNum,
             cwe: 'CWE-79',
           })
         }
 
-        // Check for eval usage
-        if (/\beval\s*\(/.test(line)) {
+        // Check for eval usage and other code injection
+        if (/\beval\s*\(/.test(line) ||
+            /\bFunction\s*\(\s*['"`]/.test(line) ||
+            /new\s+Function\s*\(/.test(line)) {
           securityIssues.push({
-            type: 'EVAL_USAGE',
+            type: 'CODE_INJECTION',
             severity: 'HIGH',
-            message: 'Use of eval() detected - security risk',
+            message: 'Dynamic code execution detected - high security risk',
             filePath: file.path,
             line: lineNum,
-            recommendation: 'Avoid eval() - use safer alternatives',
+            recommendation: 'Avoid eval(), Function constructor - use safer alternatives',
           })
         }
 
-        // Check for console.log in production code
-        if (/console\.(log|debug|info)\s*\(/.test(line) && !file.path.includes('test')) {
+        // Check for insecure random generation
+        if (/Math\.random\(\)/i.test(line) && /token|secret|key/i.test(line)) {
           securityIssues.push({
-            type: 'DEBUG_CODE',
-            severity: 'LOW',
-            message: 'Console logging in production code',
+            type: 'WEAK_CRYPTO',
+            severity: 'MEDIUM',
+            message: 'Using Math.random() for cryptographic purposes',
             filePath: file.path,
             line: lineNum,
-            recommendation: 'Remove console logs or use a proper logging library',
+            recommendation: 'Use crypto.randomBytes() or secure random generators',
           })
         }
 
-        // Check for unvalidated redirects
-        if (/window\.location\s*=|res\.redirect\s*\(.*req\./i.test(line)) {
+        // Check for path traversal
+        if (/(?:\.\.[\/\\]|\/.*\.\.[\/\\])/i.test(line) &&
+            /(?:path|file|read|require)/i.test(line)) {
+          vulnerabilities.push({
+            name: 'Path Traversal',
+            severity: 'HIGH',
+            description: 'Potential directory traversal vulnerability',
+            file: file.path,
+            line: lineNum,
+            cwe: 'CWE-22',
+          })
+        }
+
+        // Check for command injection
+        if (/(?:exec|spawn|execSync|execFile)\s*\(\s*.*\+/i.test(line) ||
+            /child_process/i.test(line) && /\$\{.*\}/i.test(line)) {
+          vulnerabilities.push({
+            name: 'Command Injection',
+            severity: 'CRITICAL',
+            description: 'Potential command injection vulnerability',
+            file: file.path,
+            line: lineNum,
+            cwe: 'CWE-78',
+          })
+        }
+
+        // Check for unvalidated redirects - Enhanced
+        if (/window\.location\s*=|res\.redirect\s*\(.*req\.|res\.sendRedirect/i.test(line)) {
           vulnerabilities.push({
             name: 'Open Redirect',
             severity: 'MEDIUM',
-            description: 'Potential unvalidated redirect',
+            description: 'Potential unvalidated redirect vulnerability',
             file: file.path,
             line: lineNum,
             cwe: 'CWE-601',
           })
         }
 
-        // Check for missing authentication
-        if (/export\s+(?:async\s+)?function\s+(?:GET|POST|PUT|DELETE|PATCH)/i.test(line) &&
-            !file.content.includes('requireAuth') && !file.content.includes('getSession')) {
+        // Check for missing input validation
+        if (/req\.(?:body|query|params)\./i.test(line) &&
+            !line.includes('validate') && !line.includes('sanitize') &&
+            !file.content.includes('zod') && !file.content.includes('joi') &&
+            !file.content.includes('yup')) {
           securityIssues.push({
-            type: 'MISSING_AUTH',
+            type: 'MISSING_VALIDATION',
             severity: 'MEDIUM',
-            message: 'API route may be missing authentication',
+            message: 'User input used without validation',
             filePath: file.path,
             line: lineNum,
-            recommendation: 'Add authentication middleware',
+            recommendation: 'Add input validation and sanitization',
+          })
+        }
+
+        // Check for insecure cookie settings
+        if (/setCookie|cookie\s*=/i.test(line) && !/secure|httpOnly|sameSite/i.test(line)) {
+          securityIssues.push({
+            type: 'INSECURE_COOKIE',
+            severity: 'MEDIUM',
+            message: 'Cookie set without security flags',
+            filePath: file.path,
+            line: lineNum,
+            recommendation: 'Set secure, httpOnly, and sameSite flags',
+          })
+        }
+
+        // Check for missing HTTPS enforcement
+        if (/app\.listen|createServer/i.test(line) && !file.content.includes('https') &&
+            !file.content.includes('force-ssl') && !file.content.includes('trust proxy')) {
+          securityIssues.push({
+            type: 'NO_HTTPS',
+            severity: 'HIGH',
+            message: 'Server may not be enforcing HTTPS',
+            filePath: file.path,
+            line: lineNum,
+            recommendation: 'Enforce HTTPS and use secure headers',
+          })
+        }
+
+        // Check for console.log in production code - More specific
+        if (/console\.(log|debug|info|warn|error)\s*\(/.test(line) &&
+            !file.path.includes('test') && !file.path.includes('spec') &&
+            !file.path.includes('.config.')) {
+          securityIssues.push({
+            type: 'DEBUG_CODE',
+            severity: 'LOW',
+            message: 'Console logging in production code',
+            filePath: file.path,
+            line: lineNum,
+            recommendation: 'Remove console logs or use structured logging',
+          })
+        }
+
+        // Check for missing authentication on sensitive routes
+        if (/export\s+(?:async\s+)?function\s+(?:GET|POST|PUT|DELETE|PATCH)/i.test(line) &&
+            /(?:admin|user|account|settings|delete)/i.test(line) &&
+            !file.content.includes('requireAuth') && !file.content.includes('getSession') &&
+            !file.content.includes('authenticate') && !file.content.includes('verifyToken')) {
+          securityIssues.push({
+            type: 'MISSING_AUTH',
+            severity: 'HIGH',
+            message: 'Sensitive API route may be missing authentication',
+            filePath: file.path,
+            line: lineNum,
+            recommendation: 'Add authentication middleware to protect sensitive endpoints',
           })
         }
       })
     }
 
-    // Calculate security score
-    const criticalCount = securityIssues.filter(i => i.severity === 'CRITICAL').length + 
-                          vulnerabilities.filter(v => v.severity === 'CRITICAL').length
-    const highCount = securityIssues.filter(i => i.severity === 'HIGH').length + 
-                      vulnerabilities.filter(v => v.severity === 'HIGH').length
-    const mediumCount = securityIssues.filter(i => i.severity === 'MEDIUM').length + 
-                        vulnerabilities.filter(v => v.severity === 'MEDIUM').length
-    const lowCount = securityIssues.filter(i => i.severity === 'LOW').length + 
-                     vulnerabilities.filter(v => v.severity === 'LOW').length
+    // Remove duplicate issues
+    const uniqueIssues = securityIssues.filter((issue, index, self) =>
+      index === self.findIndex(i => i.type === issue.type && i.filePath === issue.filePath)
+    )
 
-    const securityScore = Math.max(0, 100 - (criticalCount * 25) - (highCount * 15) - (mediumCount * 5) - (lowCount * 1))
+    const uniqueVulnerabilities = vulnerabilities.filter((vuln, index, self) =>
+      index === self.findIndex(v => v.name === vuln.name && v.file === vuln.file && v.line === vuln.line)
+    )
 
-    return { securityIssues, vulnerabilities, securityScore }
+    // Calculate security score with improved weighting
+    const criticalCount = uniqueIssues.filter(i => i.severity === 'CRITICAL').length +
+                          uniqueVulnerabilities.filter(v => v.severity === 'CRITICAL').length
+    const highCount = uniqueIssues.filter(i => i.severity === 'HIGH').length +
+                      uniqueVulnerabilities.filter(v => v.severity === 'HIGH').length
+    const mediumCount = uniqueIssues.filter(i => i.severity === 'MEDIUM').length +
+                        uniqueVulnerabilities.filter(v => v.severity === 'MEDIUM').length
+    const lowCount = uniqueIssues.filter(i => i.severity === 'LOW').length +
+                     uniqueVulnerabilities.filter(v => v.severity === 'LOW').length
+
+    const securityScore = Math.max(0, 100 -
+      (criticalCount * 25) -
+      (highCount * 15) -
+      (mediumCount * 8) -
+      (lowCount * 2)
+    )
+
+    return { securityIssues: uniqueIssues, vulnerabilities: uniqueVulnerabilities, securityScore }
   }
 
   private analyzeCodeQuality(functions: FunctionInfo[], classes: ClassInfo[]): { qualityScore: number; patterns: string[] } {
     const patterns: string[] = []
-    let qualityScore = 100
 
-    // Detect patterns
-    const hasReact = this.files.some(f => f.content.includes('import React') || f.content.includes("from 'react'"))
-    const hasNextJS = this.files.some(f => f.content.includes("from 'next'") || f.path.includes('app/'))
-    const hasPrisma = this.files.some(f => f.content.includes('@prisma/client'))
-    const hasExpress = this.files.some(f => f.content.includes("from 'express'"))
-    const hasTypescript = this.files.some(f => f.path.endsWith('.ts') || f.path.endsWith('.tsx'))
-    const hasTailwind = this.files.some(f => f.content.includes('tailwind') || f.path.includes('tailwind'))
-    const hasZod = this.files.some(f => f.content.includes("from 'zod'"))
-    const hasRedux = this.files.some(f => f.content.includes('@reduxjs/toolkit') || f.content.includes('createSlice'))
-    const hasGraphQL = this.files.some(f => f.content.includes('graphql') || f.content.includes('gql`'))
+    // Detect technology patterns
+    const techPatterns = this.detectTechnologyPatterns()
+    patterns.push(...techPatterns)
 
-    if (hasReact) patterns.push('React')
-    if (hasNextJS) patterns.push('Next.js')
-    if (hasPrisma) patterns.push('Prisma ORM')
-    if (hasExpress) patterns.push('Express.js')
-    if (hasTypescript) patterns.push('TypeScript')
-    if (hasTailwind) patterns.push('Tailwind CSS')
-    if (hasZod) patterns.push('Zod Validation')
-    if (hasRedux) patterns.push('Redux')
-    if (hasGraphQL) patterns.push('GraphQL')
+    // Detect architecture patterns
+    const archPatterns = this.detectArchitecturePatterns()
+    patterns.push(...archPatterns)
 
-    // Architecture patterns
-    const hasServices = this.files.some(f => f.path.includes('/services/') || f.path.includes('/service.'))
-    const hasControllers = this.files.some(f => f.path.includes('/controllers/'))
-    const hasMiddleware = this.files.some(f => f.path.includes('/middleware/'))
-    const hasUtils = this.files.some(f => f.path.includes('/utils/') || f.path.includes('/lib/'))
-    const hasTests = this.files.some(f => f.path.includes('.test.') || f.path.includes('.spec.'))
+    // Calculate comprehensive quality metrics
+    const complexityMetrics = this.calculateComplexityMetrics(functions)
+    const maintainabilityMetrics = this.calculateMaintainabilityMetrics(functions, classes)
+    const testabilityMetrics = this.calculateTestabilityMetrics(functions)
+    const technicalDebtMetrics = this.calculateTechnicalDebtMetrics(functions, classes)
 
-    if (hasServices) patterns.push('Service Layer')
-    if (hasControllers) patterns.push('MVC Pattern')
-    if (hasMiddleware) patterns.push('Middleware Pattern')
-    if (hasUtils) patterns.push('Utility Modules')
-    if (hasTests) patterns.push('Test Coverage')
+    // Calculate overall quality score
+    const qualityScore = this.calculateOverallQualityScore(
+      complexityMetrics,
+      maintainabilityMetrics,
+      testabilityMetrics,
+      technicalDebtMetrics,
+      techPatterns
+    )
 
-    // Quality penalties
-    const avgComplexity = functions.length > 0 
-      ? functions.reduce((sum, f) => sum + f.complexity, 0) / functions.length 
+    return { qualityScore, patterns }
+  }
+
+  private detectTechnologyPatterns(): string[] {
+    const patterns: string[] = []
+
+    const techChecks = [
+      { name: 'React', check: () => this.files.some(f => f.content.includes('import React') || f.content.includes("from 'react'")) },
+      { name: 'Next.js', check: () => this.files.some(f => f.content.includes("from 'next'") || f.path.includes('app/') || f.path.includes('pages/')) },
+      { name: 'Prisma ORM', check: () => this.files.some(f => f.content.includes('@prisma/client') || f.content.includes('prisma/schema.prisma')) },
+      { name: 'Express.js', check: () => this.files.some(f => f.content.includes("from 'express'") || f.content.includes("require('express')")) },
+      { name: 'TypeScript', check: () => this.files.some(f => f.path.endsWith('.ts') || f.path.endsWith('.tsx')) },
+      { name: 'Tailwind CSS', check: () => this.files.some(f => f.content.includes('tailwind') || f.path.includes('tailwind.config')) },
+      { name: 'Zod Validation', check: () => this.files.some(f => f.content.includes("from 'zod'")) },
+      { name: 'Redux', check: () => this.files.some(f => f.content.includes('@reduxjs/toolkit') || f.content.includes('createSlice')) },
+      { name: 'GraphQL', check: () => this.files.some(f => f.content.includes('graphql') || f.content.includes('gql`')) },
+      { name: 'Jest', check: () => this.files.some(f => f.content.includes("from 'jest'") || f.path.includes('jest.config')) },
+      { name: 'ESLint', check: () => this.files.some(f => f.path.includes('eslint') || f.path.includes('.eslintrc')) },
+      { name: 'Prettier', check: () => this.files.some(f => f.path.includes('prettier') || f.path.includes('.prettierrc')) },
+      { name: 'Docker', check: () => this.files.some(f => f.path.includes('Dockerfile') || f.path.includes('docker-compose')) },
+    ]
+
+    for (const tech of techChecks) {
+      if (tech.check()) {
+        patterns.push(tech.name)
+      }
+    }
+
+    return patterns
+  }
+
+  private detectArchitecturePatterns(): string[] {
+    const patterns: string[] = []
+
+    const archChecks = [
+      { name: 'Service Layer', check: () => this.files.some(f => f.path.toLowerCase().includes('/services/') || f.path.toLowerCase().includes('/service.')) },
+      { name: 'MVC Pattern', check: () => this.files.some(f => f.path.toLowerCase().includes('/controllers/') || f.path.toLowerCase().includes('/models/')) },
+      { name: 'Middleware Pattern', check: () => this.files.some(f => f.path.toLowerCase().includes('/middleware/')) },
+      { name: 'Utility Modules', check: () => this.files.some(f => f.path.toLowerCase().includes('/utils/') || f.path.toLowerCase().includes('/lib/') || f.path.toLowerCase().includes('/helpers/')) },
+      { name: 'Test Coverage', check: () => this.files.some(f => f.path.toLowerCase().includes('.test.') || f.path.toLowerCase().includes('.spec.') || f.path.toLowerCase().includes('/__tests__/')) },
+      { name: 'Component Architecture', check: () => this.files.some(f => f.path.toLowerCase().includes('/components/')) },
+      { name: 'Custom Hooks', check: () => this.files.some(f => f.content.includes('use') && f.path.toLowerCase().includes('/hooks/')) },
+      { name: 'API Routes', check: () => this.files.some(f => f.path.includes('/api/') || f.path.includes('/routes/')) },
+    ]
+
+    for (const arch of archChecks) {
+      if (arch.check()) {
+        patterns.push(arch.name)
+      }
+    }
+
+    return patterns
+  }
+
+  private calculateComplexityMetrics(functions: FunctionInfo[]) {
+    const complexities = functions.map(f => f.complexity)
+    const avgComplexity = complexities.length > 0 ? complexities.reduce((a, b) => a + b, 0) / complexities.length : 0
+
+    const distribution = {
+      low: complexities.filter(c => c <= 5).length,
+      medium: complexities.filter(c => c > 5 && c <= 10).length,
+      high: complexities.filter(c => c > 10 && c <= 20).length,
+      veryHigh: complexities.filter(c => c > 20).length,
+    }
+
+    const hotspots = functions
+      .filter(f => f.complexity > 15)
+      .sort((a, b) => b.complexity - a.complexity)
+      .slice(0, 10)
+      .map(f => ({ name: f.name, value: f.complexity, file: f.filePath }))
+
+    return { average: avgComplexity, distribution, hotspots }
+  }
+
+  private calculateMaintainabilityMetrics(functions: FunctionInfo[], classes: ClassInfo[]) {
+    let score = 100
+
+    // Factor 1: Function length (lines of code)
+    const avgFunctionLength = functions.length > 0
+      ? functions.reduce((sum, f) => sum + (f.lineEnd - f.lineStart), 0) / functions.length
       : 0
-    
-    if (avgComplexity > 20) qualityScore -= 20
-    else if (avgComplexity > 10) qualityScore -= 10
-    else if (avgComplexity > 5) qualityScore -= 5
 
-    // Check for long functions (>100 lines)
-    const longFunctions = functions.filter(f => (f.lineEnd - f.lineStart) > 100).length
-    qualityScore -= longFunctions * 3
+    if (avgFunctionLength > 50) score -= 15
+    else if (avgFunctionLength > 30) score -= 8
+    else if (avgFunctionLength > 20) score -= 4
 
-    // Check for deeply nested code
-    const deeplyNested = this.files.filter(f => {
+    // Factor 2: Cyclomatic complexity
+    const highComplexity = functions.filter(f => f.complexity > 10).length
+    score -= (highComplexity / functions.length) * 20
+
+    // Factor 3: Class size
+    const avgClassSize = classes.length > 0
+      ? classes.reduce((sum, c) => sum + (c.lineEnd - c.lineStart), 0) / classes.length
+      : 0
+
+    if (avgClassSize > 300) score -= 10
+    else if (avgClassSize > 200) score -= 5
+
+    // Factor 4: Parameter count
+    const avgParams = functions.length > 0
+      ? functions.reduce((sum, f) => sum + f.parameters.length, 0) / functions.length
+      : 0
+
+    if (avgParams > 5) score -= 8
+    else if (avgParams > 3) score -= 4
+
+    return Math.max(0, Math.min(100, score))
+  }
+
+  private calculateTestabilityMetrics(functions: FunctionInfo[]) {
+    let score = 50 // Base score
+
+    // Check for test files
+    const testFiles = this.files.filter(f =>
+      f.path.includes('.test.') ||
+      f.path.includes('.spec.') ||
+      f.path.includes('/__tests__/')
+    ).length
+
+    if (testFiles > 0) score += 20
+
+    // Check for testable patterns
+    const hasDependencyInjection = this.files.some(f => f.content.includes('inject') || f.content.includes('DI'))
+    const hasInterfaceSegregation = this.files.some(f => f.content.includes('interface'))
+    const hasMocking = this.files.some(f => f.content.includes('jest.mock') || f.content.includes('vi.mock'))
+
+    if (hasDependencyInjection) score += 10
+    if (hasInterfaceSegregation) score += 10
+    if (hasMocking) score += 10
+
+    // Check for pure functions (simple heuristic)
+    const pureFunctions = functions.filter(f =>
+      !f.code.includes('this.') &&
+      !f.code.includes('window.') &&
+      !f.code.includes('document.') &&
+      !f.code.includes('console.')
+    ).length
+
+    score += (pureFunctions / functions.length) * 20
+
+    return Math.max(0, Math.min(100, score))
+  }
+
+  private calculateTechnicalDebtMetrics(functions: FunctionInfo[], classes: ClassInfo[]) {
+    const debtItems = []
+
+    // High complexity functions
+    const highComplexity = functions.filter(f => f.complexity > 15)
+    if (highComplexity.length > 0) {
+      debtItems.push({
+        type: 'High Complexity Functions',
+        hours: Math.round(highComplexity.length * 2),
+        priority: 'High',
+      })
+    }
+
+    // Long functions
+    const longFunctions = functions.filter(f => (f.lineEnd - f.lineStart) > 50)
+    if (longFunctions.length > 0) {
+      debtItems.push({
+        type: 'Long Functions',
+        hours: Math.round(longFunctions.length * 1.5),
+        priority: 'Medium',
+      })
+    }
+
+    // Large classes
+    const largeClasses = classes.filter(c => (c.lineEnd - c.lineStart) > 200)
+    if (largeClasses.length > 0) {
+      debtItems.push({
+        type: 'Large Classes',
+        hours: Math.round(largeClasses.length * 3),
+        priority: 'High',
+      })
+    }
+
+    // Missing documentation
+    const undocumented = functions.filter(f => !f.description).length
+    if (undocumented > 0) {
+      debtItems.push({
+        type: 'Undocumented Code',
+        hours: Math.round(undocumented * 0.5),
+        priority: 'Low',
+      })
+    }
+
+    // Deep nesting
+    const deeplyNestedFiles = this.files.filter(f => {
       const maxIndent = f.content.split('\n').reduce((max, line) => {
         const indent = line.search(/\S/)
         return indent > max ? indent : max
       }, 0)
-      return maxIndent > 24 // 6 levels of nesting
+      return maxIndent > 24
     }).length
-    qualityScore -= deeplyNested * 2
 
-    // Bonus for good practices
-    if (hasTypescript) qualityScore += 5
-    if (hasTests) qualityScore += 10
-    if (hasZod) qualityScore += 5
-    if (hasMiddleware) qualityScore += 3
+    if (deeplyNestedFiles > 0) {
+      debtItems.push({
+        type: 'Deeply Nested Code',
+        hours: Math.round(deeplyNestedFiles * 1),
+        priority: 'Medium',
+      })
+    }
 
-    qualityScore = Math.max(0, Math.min(100, qualityScore))
+    const totalHours = debtItems.reduce((sum, item) => sum + item.hours, 0)
+    const category = totalHours > 80 ? 'High' : totalHours > 40 ? 'Medium' : 'Low'
 
-    return { qualityScore, patterns }
+    return { hours: totalHours, category, breakdown: debtItems }
+  }
+
+  private calculateOverallQualityScore(
+    complexity: any,
+    maintainability: number,
+    testability: number,
+    technicalDebt: any,
+    patterns: string[]
+  ): number {
+    let score = 100
+
+    // Complexity penalties
+    if (complexity.average > 20) score -= 20
+    else if (complexity.average > 10) score -= 10
+    else if (complexity.average > 5) score -= 5
+
+    // Maintainability factor
+    score = (score * maintainability) / 100
+
+    // Testability factor
+    score = (score * (50 + testability / 2)) / 100
+
+    // Technical debt penalty
+    const debtPenalty = technicalDebt.hours / 10
+    score -= Math.min(30, debtPenalty)
+
+    // Pattern bonuses
+    const bonusPatterns = ['TypeScript', 'Test Coverage', 'ESLint', 'Prettier', 'Zod Validation']
+    const bonusCount = patterns.filter(p => bonusPatterns.includes(p)).length
+    score += bonusCount * 3
+
+    return Math.max(0, Math.min(100, Math.round(score)))
   }
 
   private extractFunctions(): FunctionInfo[] {
@@ -653,55 +1010,144 @@ export class ComprehensiveAnalyzer {
 
   private extractAPIRoutes(): APIRouteInfo[] {
     const routes: APIRouteInfo[] = []
-    
+
     for (const file of this.files) {
       // Next.js App Router
       if (file.path.includes('/api/') && file.path.includes('route.')) {
         const apiPath = this.extractNextAPIPath(file.path)
-        
+
         for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const) {
           const pattern = new RegExp(`export\\s+(?:async\\s+)?function\\s+${method}\\s*\\(`, 'g')
           const match = pattern.exec(file.content)
-          
+
           if (match) {
             const beforeMatch = file.content.substring(0, match.index)
             const lineStart = beforeMatch.split('\n').length
             const code = this.extractBlock(file.content, match.index)
-            
+
+            // Extract more detailed information
+            const description = this.extractJSDocComment(file.content, match.index)
+            const parameters = this.extractRouteParams(apiPath)
+            const middleware = this.extractMiddlewareFromRoute(code)
+
             routes.push({
               method,
               path: apiPath,
               filePath: file.path,
               lineStart,
               code: code.substring(0, 2000),
-              isProtected: file.content.includes('requireAuth') || file.content.includes('getSession'),
-              parameters: this.extractRouteParams(apiPath),
+              description,
+              isProtected: this.isRouteProtected(file.content, code),
+              parameters,
+              middleware,
+              requestBody: this.extractRequestBody(code),
+              responseType: this.extractResponseType(code),
             })
           }
         }
       }
-      
-      // Express style routes
-      const expressPattern = /(?:app|router)\.(get|post|put|patch|delete)\s*\(\s*['"`]([^'"`]+)['"`]/gi
-      let match
-      
-      while ((match = expressPattern.exec(file.content)) !== null) {
-        const beforeMatch = file.content.substring(0, match.index)
+
+      // Express style routes - Enhanced
+      const expressPatterns = [
+        /(?:app|router|express)\.(get|post|put|patch|delete|use|all)\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+        /(?:router|app)\.(route\(['"`][^'"`]*['"`]\)\.)?(get|post|put|patch|delete|use|all)\s*\(/gi,
+      ]
+
+      for (const expressPattern of expressPatterns) {
+        let match
+        while ((match = expressPattern.exec(file.content)) !== null) {
+          const method = match[1] || match[2] || match[3]
+          const path = match[2] || this.extractExpressPath(file.content, match.index)
+
+          if (method && path) {
+            const beforeMatch = file.content.substring(0, match.index)
+            const lineStart = beforeMatch.split('\n').length
+            const code = this.extractBlock(file.content, match.index)
+
+            routes.push({
+              method: method.toUpperCase() as APIRouteInfo['method'],
+              path,
+              filePath: file.path,
+              lineStart,
+              code: code.substring(0, 2000),
+              description: this.extractJSDocComment(file.content, match.index),
+              isProtected: this.isRouteProtected(file.content, code),
+              parameters: this.extractRouteParams(path),
+              middleware: this.extractMiddlewareFromRoute(code),
+              requestBody: this.extractRequestBody(code),
+              responseType: this.extractResponseType(code),
+            })
+          }
+        }
+      }
+
+      // Fastify routes
+      const fastifyPattern = /fastify\.(get|post|put|patch|delete|route)\s*\(\s*['"`]([^'"`]+)['"`]/gi
+      let fastifyMatch
+      while ((fastifyMatch = fastifyPattern.exec(file.content)) !== null) {
+        const beforeMatch = file.content.substring(0, fastifyMatch.index)
         const lineStart = beforeMatch.split('\n').length
-        
+        const code = this.extractBlock(file.content, fastifyMatch.index)
+
         routes.push({
-          method: match[1].toUpperCase() as APIRouteInfo['method'],
-          path: match[2],
+          method: fastifyMatch[1].toUpperCase() as APIRouteInfo['method'],
+          path: fastifyMatch[2],
           filePath: file.path,
           lineStart,
-          code: match[0],
-          isProtected: false,
-          parameters: this.extractRouteParams(match[2]),
+          code: code.substring(0, 2000),
+          description: this.extractJSDocComment(file.content, fastifyMatch.index),
+          isProtected: this.isRouteProtected(file.content, code),
+          parameters: this.extractRouteParams(fastifyMatch[2]),
+          middleware: this.extractMiddlewareFromRoute(code),
         })
       }
+
+      // Hapi.js routes
+      const hapiPattern = /server\.route\s*\(\s*\{[\s\S]*?method:\s*['"`]([^'"`]+)['"`][\s\S]*?path:\s*['"`]([^'"`]+)['"`]/gi
+      let hapiMatch
+      while ((hapiMatch = hapiPattern.exec(file.content)) !== null) {
+        const beforeMatch = file.content.substring(0, hapiMatch.index)
+        const lineStart = beforeMatch.split('\n').length
+
+        routes.push({
+          method: hapiMatch[1].toUpperCase() as APIRouteInfo['method'],
+          path: hapiMatch[2],
+          filePath: file.path,
+          lineStart,
+          code: hapiMatch[0].substring(0, 2000),
+          isProtected: this.isRouteProtected(file.content, hapiMatch[0]),
+          parameters: this.extractRouteParams(hapiMatch[2]),
+        })
+      }
+
+      // GraphQL resolvers
+      if (file.content.includes('graphql') || file.content.includes('apollo')) {
+        const resolverPattern = /(?:Query|Mutation):\s*\{[\s\S]*?(\w+):\s*(?:async\s+)?\([^)]*\)\s*=>/gi
+        let resolverMatch
+        while ((resolverMatch = resolverPattern.exec(file.content)) !== null) {
+          const beforeMatch = file.content.substring(0, resolverMatch.index)
+          const lineStart = beforeMatch.split('\n').length
+
+          routes.push({
+            method: 'ALL',
+            path: `/graphql/${resolverMatch[1]}`,
+            filePath: file.path,
+            lineStart,
+            code: resolverMatch[0].substring(0, 2000),
+            description: `GraphQL ${resolverMatch[1]} resolver`,
+            isProtected: false,
+            parameters: [],
+          })
+        }
+      }
     }
-    
-    return routes
+
+    // Remove duplicates
+    const uniqueRoutes = routes.filter((route, index, self) =>
+      index === self.findIndex(r => r.method === route.method && r.path === route.path && r.filePath === route.filePath)
+    )
+
+    return uniqueRoutes
   }
 
   private extractServices(): ServiceInfo[] {
@@ -963,25 +1409,111 @@ export class ComprehensiveAnalyzer {
   private extractDependencies(): { dependencies: DependencyInfo[]; devDependencies: DependencyInfo[] } {
     const deps: DependencyInfo[] = []
     const devDeps: DependencyInfo[] = []
-    
+
     const pkgFile = this.files.find(f => f.path.endsWith('package.json'))
     if (pkgFile) {
       try {
         const pkg = JSON.parse(pkgFile.content)
-        
+
         for (const [name, version] of Object.entries(pkg.dependencies || {})) {
-          deps.push({ name, version: version as string })
+          const purpose = this.inferDependencyPurpose(name, version as string, false)
+          deps.push({
+            name,
+            version: version as string,
+            purpose
+          })
         }
-        
+
         for (const [name, version] of Object.entries(pkg.devDependencies || {})) {
-          devDeps.push({ name, version: version as string })
+          const purpose = this.inferDependencyPurpose(name, version as string, true)
+          devDeps.push({
+            name,
+            version: version as string,
+            purpose
+          })
         }
       } catch (e) {
         console.error('Failed to parse package.json:', e)
       }
     }
-    
+
     return { dependencies: deps, devDependencies: devDeps }
+  }
+
+  private inferDependencyPurpose(name: string, version: string, isDev: boolean): string {
+    const purposeMap: Record<string, string> = {
+      // React ecosystem
+      'react': 'Frontend framework',
+      'react-dom': 'React DOM renderer',
+      'next': 'Full-stack React framework',
+      '@next/font': 'Font optimization',
+
+      // UI libraries
+      'tailwindcss': 'CSS framework',
+      '@tailwindcss/typography': 'Typography plugin',
+      'framer-motion': 'Animation library',
+      'lucide-react': 'Icon library',
+      '@radix-ui': 'UI component primitives',
+
+      // State management
+      'zustand': 'State management',
+      'redux': 'State management',
+      '@reduxjs/toolkit': 'Redux toolkit',
+
+      // API & Networking
+      'axios': 'HTTP client',
+      'swr': 'Data fetching',
+      'react-query': 'Data fetching',
+      '@tanstack/react-query': 'Data fetching',
+
+      // Database
+      'prisma': 'ORM',
+      '@prisma/client': 'Prisma client',
+      'mongoose': 'MongoDB ODM',
+      'mysql2': 'MySQL driver',
+      'pg': 'PostgreSQL driver',
+
+      // Authentication
+      'next-auth': 'Authentication',
+      '@auth/prisma-adapter': 'Auth adapter',
+      'bcryptjs': 'Password hashing',
+      'jsonwebtoken': 'JWT handling',
+
+      // Validation
+      'zod': 'Schema validation',
+      'joi': 'Schema validation',
+      'yup': 'Schema validation',
+
+      // Development tools
+      'typescript': 'TypeScript',
+      '@types/node': 'Node.js types',
+      '@types/react': 'React types',
+      'eslint': 'Linting',
+      '@typescript-eslint': 'TypeScript ESLint',
+      'prettier': 'Code formatting',
+      'husky': 'Git hooks',
+      'lint-staged': 'Lint staging',
+
+      // Testing
+      'jest': 'Testing framework',
+      '@testing-library/react': 'React testing',
+      '@testing-library/jest-dom': 'Jest DOM testing',
+      'cypress': 'E2E testing',
+
+      // Build tools
+      'webpack': 'Bundler',
+      'vite': 'Build tool',
+      'rollup': 'Module bundler',
+      'babel': 'JavaScript transpiler',
+
+      // Utilities
+      'lodash': 'Utility library',
+      'date-fns': 'Date utilities',
+      'clsx': 'Class name utility',
+      'uuid': 'UUID generation',
+    }
+
+    return purposeMap[name] || (isDev ? 'Development tool' : 'Runtime dependency')
   }
 
   private calculateStats(
@@ -1073,16 +1605,127 @@ export class ComprehensiveAnalyzer {
     const params: ParameterInfo[] = []
     const pattern = /[:\[]([^\]/\]]+)/g
     let match
-    
+
     while ((match = pattern.exec(path)) !== null) {
       params.push({
         name: match[1],
         type: 'string',
-        isOptional: false,
+        isOptional: path.includes('?'),
       })
     }
-    
+
     return params
+  }
+
+  private extractJSDocComment(content: string, functionIndex: number): string | undefined {
+    // Look for JSDoc comment above the function
+    const beforeFunction = content.substring(0, functionIndex)
+    const lines = beforeFunction.split('\n')
+    const jsdocLines: string[] = []
+
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim()
+      if (line.startsWith('/**')) {
+        jsdocLines.unshift(line)
+        continue
+      }
+      if (line.startsWith('*/')) {
+        jsdocLines.unshift(line)
+        break
+      }
+      if (line.startsWith('*')) {
+        jsdocLines.unshift(line)
+      }
+      if (!line.startsWith('*') && !line.startsWith('/**') && jsdocLines.length > 0) {
+        break
+      }
+    }
+
+    if (jsdocLines.length > 0) {
+      // Extract description from JSDoc
+      const jsdoc = jsdocLines.join('\n')
+      const descriptionMatch = jsdoc.match(/\/\*\*\s*\n\s*\*\s*([^*\n]+)/)
+      return descriptionMatch ? descriptionMatch[1].trim() : undefined
+    }
+
+    return undefined
+  }
+
+  private isRouteProtected(fileContent: string, routeCode: string): boolean {
+    return fileContent.includes('requireAuth') ||
+           fileContent.includes('getSession') ||
+           fileContent.includes('authenticate') ||
+           fileContent.includes('verifyToken') ||
+           fileContent.includes('auth') ||
+           routeCode.includes('auth') ||
+           routeCode.includes('session')
+  }
+
+  private extractMiddlewareFromRoute(code: string): string[] {
+    const middleware: string[] = []
+    const patterns = [
+      /middleware:\s*\[([^\]]+)\]/g,
+      /use\s*\(\s*(\w+)\s*\)/g,
+      /(\w+)Middleware/g,
+    ]
+
+    for (const pattern of patterns) {
+      let match
+      while ((match = pattern.exec(code)) !== null) {
+        const middlewareName = match[1] || match[0].replace(/middleware|use|\(|\)/g, '').trim()
+        if (middlewareName && !middleware.includes(middlewareName)) {
+          middleware.push(middlewareName)
+        }
+      }
+    }
+
+    return middleware
+  }
+
+  private extractRequestBody(code: string): string | undefined {
+    // Look for request body type hints
+    const patterns = [
+      /req\.body\.(\w+)/g,
+      /body:\s*(\w+)/g,
+      /RequestBody|Input/i,
+    ]
+
+    for (const pattern of patterns) {
+      const match = pattern.exec(code)
+      if (match) {
+        return match[1] || 'JSON'
+      }
+    }
+
+    return undefined
+  }
+
+  private extractResponseType(code: string): string | undefined {
+    // Look for response type hints
+    const patterns = [
+      /res\.json\s*\(/g,
+      /res\.send\s*\(/g,
+      /return\s+\{/g,
+      /Response|Output/i,
+    ]
+
+    for (const pattern of patterns) {
+      if (pattern.test(code)) {
+        if (pattern.source.includes('json')) return 'JSON'
+        if (pattern.source.includes('send')) return 'Text'
+        if (pattern.source.includes('return')) return 'Object'
+        return 'Unknown'
+      }
+    }
+
+    return undefined
+  }
+
+  private extractExpressPath(content: string, matchIndex: number): string {
+    // Extract path from Express route definition
+    const routeBlock = this.extractBlock(content, matchIndex)
+    const pathMatch = routeBlock.match(/['"`]([^'"`]+)['"`]/)
+    return pathMatch ? pathMatch[1] : '/'
   }
 
   private parseParameters(paramsString: string): ParameterInfo[] {

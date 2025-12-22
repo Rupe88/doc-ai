@@ -17,16 +17,15 @@ export function FeatureCard({ icon: Icon, title, description, delay = 0 }: Featu
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      whileHover={{ scale: 1.05, y: -5 }}
-      className="bg-card border border-border rounded-xl p-6 hover:shadow-github transition-all group"
+      className="bg-gray-800 border border-gray-600 rounded-md p-6 hover:shadow-lg transition-all hover:bg-gray-700 group"
     >
       <div className="relative mb-4">
-        <div className="relative bg-foreground p-3 rounded-lg w-fit">
-          <Icon className="w-6 h-6 text-background" />
+        <div className="relative">
+          <Icon className="w-6 h-6 text-blue-400" />
         </div>
       </div>
-      <h3 className="text-foreground font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-muted-foreground text-sm">{description}</p>
+      <h3 className="text-white font-semibold text-lg mb-2">{title}</h3>
+      <p className="text-gray-300 text-sm leading-relaxed">{description}</p>
     </motion.div>
   )
 }

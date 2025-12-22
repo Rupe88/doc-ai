@@ -24,12 +24,12 @@ export function Navbar() {
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-background/95 backdrop-blur-md border-b border-border shadow-github'
-          : 'bg-transparent'
+          ? 'bg-black/95 backdrop-blur-md border-b border-gray-600 shadow-lg'
+          : 'bg-black/95 backdrop-blur-md'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
             <motion.div
@@ -37,43 +37,43 @@ export function Navbar() {
               transition={{ duration: 0.5 }}
               className="relative"
             >
-              <Sparkles className="w-8 h-8 text-foreground" />
+              <Sparkles className="w-6 h-6 text-white" />
             </motion.div>
-            <span className="text-xl font-bold text-foreground">DocAI</span>
+            <span className="text-lg font-semibold text-white">DocAI</span>
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             <Link
               href="/#features"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-gray-300 hover:text-white transition-colors text-sm"
             >
               Features
             </Link>
             <Link
               href="/#pricing"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-gray-300 hover:text-white transition-colors text-sm"
             >
               Pricing
             </Link>
             <Link
               href="/#docs"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-gray-300 hover:text-white transition-colors text-sm"
             >
               Docs
             </Link>
             <Link
               href="/api/github/connect"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center space-x-1"
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-1 text-sm"
             >
               <Github className="w-4 h-4" />
-              <span>Login</span>
+              <span>Sign in</span>
             </Link>
             <Button
               asChild
-              className="bg-foreground hover:bg-foreground/90 text-background border-0"
+              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
             >
-              <Link href="/api/github/connect">Get Started</Link>
+              <Link href="/api/github/connect">Get started</Link>
             </Button>
           </div>
 
@@ -94,42 +94,42 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-background/95 backdrop-blur-md border-t border-border"
+            className="md:hidden bg-black/95 backdrop-blur-md border-t border-gray-600"
           >
             <div className="px-4 py-4 space-y-4">
               <Link
                 href="/#features"
-                className="block text-muted-foreground hover:text-foreground transition-colors"
+                className="block text-gray-300 hover:text-white transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Features
               </Link>
               <Link
                 href="/#pricing"
-                className="block text-muted-foreground hover:text-foreground transition-colors"
+                className="block text-gray-300 hover:text-white transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Pricing
               </Link>
               <Link
                 href="/#docs"
-                className="block text-muted-foreground hover:text-foreground transition-colors"
+                className="block text-gray-300 hover:text-white transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Docs
               </Link>
               <Link
-                href="/api/auth/github"
-                className="block text-muted-foreground hover:text-foreground transition-colors"
+                href="/api/github/connect"
+                className="block text-gray-300 hover:text-white transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Login
               </Link>
               <Button
                 asChild
-                className="w-full bg-foreground hover:bg-foreground/90 text-background"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               >
-                <Link href="/api/auth/github" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/api/github/connect" onClick={() => setMobileMenuOpen(false)}>
                   Get Started
                 </Link>
               </Button>

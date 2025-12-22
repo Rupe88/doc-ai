@@ -86,106 +86,105 @@ export function RepoCard({ repo }: RepoCardProps) {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02, y: -5 }}
+      whileHover={{ backgroundColor: '#2d2d2d' }}
       transition={{ duration: 0.2 }}
+      className="bg-gray-800 border border-gray-600 rounded-md p-4 hover:bg-gray-700 transition-colors"
     >
-      <Card className="bg-card border-border hover:border-foreground/50 transition-all h-full flex flex-col shadow-github">
-        <div className="p-6 flex-1">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h3 className="text-foreground font-semibold text-lg mb-1">{repo.name}</h3>
-              <p className="text-muted-foreground text-sm">{repo.fullName}</p>
-            </div>
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Sparkles className="w-5 h-5 text-foreground" />
-            </motion.div>
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          {/* Repository name and owner */}
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-gray-400 text-sm truncate">{repo.fullName?.split('/')[0] || 'Unknown'}</span>
+            <span className="text-gray-400 text-sm">/</span>
+            <h3 className="text-white font-semibold text-base hover:text-blue-400 cursor-pointer truncate">
+              {repo.name}
+            </h3>
           </div>
 
           {/* Description */}
           {repo.description && (
-            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{repo.description}</p>
+            <p className="text-gray-300 text-sm mb-3 line-clamp-2">{repo.description}</p>
           )}
 
-          {/* Metadata */}
-          <div className="flex items-center space-x-4 mb-4 text-sm text-muted-foreground">
+          {/* Metadata row */}
+          <div className="flex items-center space-x-4 text-xs text-gray-400">
             {repo.language && (
               <div className="flex items-center space-x-1">
-                <div className="w-3 h-3 rounded-full bg-foreground" />
+                <div className="w-3 h-3 rounded-full bg-blue-400" />
                 <span>{repo.language}</span>
               </div>
             )}
             {repo.lastSyncedAt && (
               <div className="flex items-center space-x-1">
-                <Clock className="w-4 h-4" />
-                <span>
-                  {new Date(repo.lastSyncedAt).toLocaleDateString()}
-                </span>
+                <Clock className="w-3 h-3" />
+                <span>Updated {new Date(repo.lastSyncedAt).toLocaleDateString()}</span>
               </div>
             )}
           </div>
+        </div>
 
+        {/* Status and Actions */}
+        <div className="flex flex-col items-end space-y-2 ml-4">
           {/* Status Badge */}
-          <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(repo.status)}`}>
+          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(repo.status)}`}>
             {getStatusLabel(repo.status)}
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mt-3 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
-              {error}
-            </div>
-          )}
+          {/* Actions */}
+          <div className="flex items-center space-x-1">
+            {repo.connected && repo.internalId ? (
+              <>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 px-2 text-gray-400 hover:text-white hover:bg-gray-600"
+                >
+                  <Link href={`/repos/${repo.internalId}`}>
+                    <FileText className="w-4 h-4" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 px-2 text-gray-400 hover:text-white hover:bg-gray-600"
+                >
+                  <Link href={`/api/sync/${repo.internalId}`}>
+                    <GitBranch className="w-4 h-4" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={handleConnect}
+                disabled={connecting}
+                size="sm"
+                className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white border-0 text-xs"
+              >
+                {connecting ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3 h-3 mr-1" />
+                    Connect
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Actions */}
-        <div className="p-6 pt-0 flex items-center space-x-2">
-          {repo.connected && repo.internalId ? (
-            <>
-              <Button
-                asChild
-                variant="outline"
-                className="flex-1 border-border text-foreground hover:bg-card"
-              >
-                <Link href={`/repos/${repo.internalId}`}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  View Docs
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="border-border text-foreground hover:bg-card"
-              >
-                <Link href={`/api/sync/${repo.internalId}`}>
-                  <GitBranch className="w-4 h-4" />
-                </Link>
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={handleConnect}
-              disabled={connecting}
-              className="flex-1 bg-foreground hover:bg-foreground/90 text-background disabled:opacity-50"
-            >
-              {connecting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Connect
-                </>
-              )}
-            </Button>
-          )}
+      {/* Error Message */}
+      {error && (
+        <div className="mt-3 p-2 bg-red-900/20 border border-red-600/30 rounded text-xs text-red-400">
+          {error}
         </div>
-      </Card>
+      )}
     </motion.div>
   )
 }

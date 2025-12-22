@@ -177,24 +177,24 @@ export default function Home() {
       <Hero />
 
       {/* Social Proof */}
-      <section className="py-12 bg-muted/30 border-y border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-12 bg-card border-y border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-foreground">30s</div>
-              <div className="text-muted-foreground">Avg generation time</div>
+              <div className="text-3xl font-bold text-foreground">30s</div>
+              <div className="text-muted-foreground text-sm">Avg generation time</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-foreground">100%</div>
-              <div className="text-muted-foreground">Code coverage</div>
+              <div className="text-3xl font-bold text-foreground">100%</div>
+              <div className="text-muted-foreground text-sm">Code coverage</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-foreground">FREE</div>
-              <div className="text-muted-foreground">To start</div>
+              <div className="text-3xl font-bold text-green-400">FREE</div>
+              <div className="text-muted-foreground text-sm">To start</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-foreground">15+</div>
-              <div className="text-muted-foreground">Security checks</div>
+              <div className="text-3xl font-bold text-github-warning">15+</div>
+              <div className="text-muted-foreground text-sm">Security checks</div>
             </div>
           </div>
         </div>
@@ -293,24 +293,24 @@ export default function Home() {
 
       {/* What Gets Documented */}
       <section className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Everything Gets <span className="text-foreground">Documented</span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Everything gets <span className="text-blue-400">documented</span>
             </h2>
-            <p className="text-xl text-muted-foreground">
-              Not just functions and classes - EVERYTHING
+            <p className="text-lg text-muted-foreground">
+              Not just functions and classes - everything
             </p>
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {[
-              { name: 'API Routes', icon: '/' },
+              { name: 'API routes', icon: '/' },
               { name: 'Controllers', icon: 'C' },
               { name: 'Services', icon: 'S' },
               { name: 'Models', icon: 'M' },
@@ -329,9 +329,9 @@ export default function Home() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.05 }}
-                className="bg-muted/30 border border-border rounded-lg p-4 text-center hover:bg-muted/50 transition-colors"
+                className="bg-card border border-border rounded-md p-4 text-center hover:shadow-github transition-all hover-github"
               >
-                <div className="text-2xl font-mono font-bold text-foreground mb-2">{item.icon}</div>
+                <div className="text-xl font-mono font-semibold text-blue-400 mb-2">{item.icon}</div>
                 <div className="text-sm text-muted-foreground">{item.name}</div>
               </motion.div>
             ))}
@@ -431,21 +431,21 @@ export default function Home() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-gradient-to-br from-muted/50 to-muted/20 border border-border rounded-2xl p-12"
+            className="bg-card border border-border rounded-md p-8 shadow-github"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Document Your Code in <span className="text-green-500">30 Seconds</span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Document your code in <span className="text-green-400">30 seconds</span>
             </h2>
-            <p className="text-xl text-muted-foreground mb-8">
+            <p className="text-lg text-muted-foreground mb-8">
               Join developers who stopped wasting time on documentation
             </p>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <a
                 href="/api/github/connect"
-                className="inline-flex items-center px-8 py-4 bg-foreground hover:bg-foreground/90 text-background rounded-lg text-lg font-semibold shadow-lg transition-all"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-base font-medium shadow-lg transition-all"
               >
-                Get Started Free
-                <Sparkles className="ml-2 w-5 h-5" />
+                Get started free
+                <Sparkles className="ml-2 w-4 h-4" />
               </a>
             </motion.div>
             <p className="text-sm text-muted-foreground mt-4">

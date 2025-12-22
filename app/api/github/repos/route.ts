@@ -47,7 +47,11 @@ export const GET = createApiHandler(
       const reposWithStatus = repos.map(repo => {
         const connectedRepo = connectedReposMap.get(repo.id)
         return {
-          ...repo,
+          id: repo.id,
+          name: repo.name,
+          fullName: repo.full_name, // Transform full_name to fullName
+          description: repo.description,
+          language: repo.language,
           connected: !!connectedRepo,
           internalId: connectedRepo?.id || null, // Internal database ID
           status: connectedRepo?.status || null,

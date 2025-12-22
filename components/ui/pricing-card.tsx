@@ -30,32 +30,31 @@ export function PricingCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      whileHover={{ scale: 1.05, y: -10 }}
-      className={`relative rounded-2xl p-8 border-2 transition-all ${
+      className={`relative rounded-md p-6 border transition-all hover:shadow-lg ${
         popular
-          ? 'bg-card border-foreground shadow-github-lg scale-105'
-          : 'bg-card border-border hover:border-foreground/50 hover:shadow-github'
+          ? 'bg-gray-800 border-blue-600 shadow-lg scale-105'
+          : 'bg-gray-800 border-gray-600 hover:border-blue-500/50 hover:bg-gray-700'
       }`}
     >
       {popular && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-          <div className="bg-foreground px-4 py-1 rounded-full text-background text-sm font-semibold flex items-center space-x-1">
-            <Sparkles className="w-4 h-4" />
-            <span>Most Popular</span>
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+          <div className="bg-blue-600 px-3 py-1 rounded-full text-white text-xs font-medium flex items-center space-x-1">
+            <Sparkles className="w-3 h-3" />
+            <span>Most popular</span>
           </div>
         </div>
       )}
 
-      <div className="text-center mb-8">
-        <h3 className="text-2xl font-bold text-foreground mb-2">{name}</h3>
-        <p className="text-muted-foreground text-sm mb-4">{description}</p>
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-semibold text-white mb-2">{name}</h3>
+        <p className="text-gray-400 text-sm mb-4">{description}</p>
         <div className="flex items-baseline justify-center">
-          <span className="text-5xl font-bold text-foreground">{price}</span>
-          <span className="text-muted-foreground ml-2">/{period}</span>
+          <span className="text-3xl font-bold text-foreground">{price}</span>
+          <span className="text-muted-foreground text-sm ml-1">/{period}</span>
         </div>
       </div>
 
-      <ul className="space-y-4 mb-8">
+      <ul className="space-y-3 mb-6">
         {features.map((feature, index) => (
           <motion.li
             key={index}
@@ -63,10 +62,10 @@ export function PricingCard({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3, delay: delay + index * 0.1 }}
-            className="flex items-start space-x-3"
+            className="flex items-start space-x-2"
           >
-            <Check className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
-            <span className="text-foreground">{feature}</span>
+            <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+            <span className="text-white text-sm">{feature}</span>
           </motion.li>
         ))}
       </ul>
@@ -75,11 +74,11 @@ export function PricingCard({
         asChild
         className={`w-full ${
           popular
-            ? 'bg-foreground hover:bg-foreground/90 text-background'
-            : 'bg-card hover:bg-card text-foreground border border-border'
+            ? 'bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg'
+            : 'bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500'
         }`}
       >
-        <Link href="/api/github/connect">Get Started</Link>
+        <Link href="/api/github/connect">Get started</Link>
       </Button>
     </motion.div>
   )
