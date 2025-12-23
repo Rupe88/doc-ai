@@ -48,6 +48,7 @@ export const GET = createApiHandler(
             title: true,
             type: true,
             filePath: true,
+            content: true,
             metadata: true,
             createdAt: true,
           },

@@ -181,12 +181,8 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
                       message: data.message,
                       jobId: data.jobId,
                     })
-                    // Refresh docs after short delay
-                    setTimeout(() => {
-                      fetchDocs()
-                      setGenerationStatus({ status: 'idle' })
-                      setGenerating(false)
-                    }, 1500)
+                    // Let the useEffect handle the reset to avoid duplicate messages
+                    setGenerating(false)
                     clearInterval(timeoutCheck)
                     return
                   } else if (data.type === 'error') {
@@ -230,11 +226,8 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
             jobId: data.data.jobId,
             message: 'Documentation generated successfully!',
           })
-          setTimeout(() => {
-            fetchDocs()
-            setGenerationStatus({ status: 'idle' })
-            setGenerating(false)
-          }, 1500)
+          // Let the useEffect handle the reset to avoid duplicate messages
+          setGenerating(false)
         } else if (data.data?.status === 'FAILED') {
           throw new Error(data.data.error || 'Documentation generation failed')
         } else if (data.data?.jobId) {
