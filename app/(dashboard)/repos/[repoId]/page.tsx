@@ -95,9 +95,10 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
 
   const handleGenerateDocs = async () => {
     setGenerating(true)
-    setGenerationStatus({ status: 'pending', progress: 0, message: 'Starting generation...' })
+    setGenerationStatus({ status: 'processing', progress: 5, message: 'Starting generation...' })
 
     try {
+      // Use fetch with streaming for Server-Sent Events
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,19 +114,138 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error?.message || 'Failed to start generation')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || `Server error: ${response.status}`)
       }
 
-      const data = await response.json()
-      if (data.success && data.data?.jobId) {
-        setGenerationStatus({
-          status: 'pending',
-          progress: 0,
-          jobId: data.data.jobId,
-          message: 'Generation queued...',
-        })
-        checkGenerationStatus(data.data.jobId)
+      // Check if response is SSE stream
+      const contentType = response.headers.get('content-type')
+      if (contentType?.includes('text/event-stream')) {
+        // Handle SSE stream for real-time progress
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+        
+        if (!reader) {
+          throw new Error('Failed to get response stream')
+        }
+
+        let buffer = ''
+        let lastJobId: string | undefined
+        let streamCompleted = false
+        let lastUpdateTime = Date.now()
+        
+        // Timeout fallback - if no updates for 45 seconds, start polling
+        const timeoutCheck = setInterval(() => {
+          if (Date.now() - lastUpdateTime > 45000 && lastJobId && !streamCompleted) {
+            console.log('[Generate] SSE timeout, switching to polling')
+            clearInterval(timeoutCheck)
+            reader.cancel()
+          }
+        }, 5000)
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            
+            if (done) break
+            
+            lastUpdateTime = Date.now()
+            buffer += decoder.decode(value, { stream: true })
+            
+            // Parse SSE messages
+            const lines = buffer.split('\n\n')
+            buffer = lines.pop() || '' // Keep incomplete message in buffer
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  
+                  // Track the jobId for fallback polling
+                  if (data.jobId) {
+                    lastJobId = data.jobId
+                  }
+                  
+                  if (data.type === 'progress') {
+                    setGenerationStatus({
+                      status: 'processing',
+                      progress: data.progress,
+                      message: data.message,
+                      jobId: data.jobId,
+                    })
+                  } else if (data.type === 'complete') {
+                    streamCompleted = true
+                    setGenerationStatus({
+                      status: 'completed',
+                      progress: 100,
+                      message: data.message,
+                      jobId: data.jobId,
+                    })
+                    // Refresh docs after short delay
+                    setTimeout(() => {
+                      fetchDocs()
+                      setGenerationStatus({ status: 'idle' })
+                      setGenerating(false)
+                    }, 1500)
+                    clearInterval(timeoutCheck)
+                    return
+                  } else if (data.type === 'error') {
+                    clearInterval(timeoutCheck)
+                    throw new Error(data.message)
+                  }
+                } catch (parseError) {
+                  console.warn('Failed to parse SSE message:', line)
+                }
+              }
+            }
+          }
+        } finally {
+          clearInterval(timeoutCheck)
+        }
+        
+        // Stream ended without complete/error - fallback to polling if we have jobId
+        if (!streamCompleted && lastJobId) {
+          console.log('[Generate] SSE stream ended unexpectedly, falling back to polling')
+          setGenerationStatus(prev => ({
+            ...prev,
+            jobId: lastJobId,
+            message: 'Checking generation status...',
+          }))
+          // The useEffect polling will now kick in since we have a jobId
+        } else if (!streamCompleted) {
+          throw new Error('Generation stream ended unexpectedly')
+        }
+      } else {
+        // Fallback to JSON response (for error cases)
+        const data = await response.json()
+        
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Failed to generate documentation')
+        }
+        
+        if (data.data?.status === 'COMPLETED') {
+          setGenerationStatus({
+            status: 'completed',
+            progress: 100,
+            jobId: data.data.jobId,
+            message: 'Documentation generated successfully!',
+          })
+          setTimeout(() => {
+            fetchDocs()
+            setGenerationStatus({ status: 'idle' })
+            setGenerating(false)
+          }, 1500)
+        } else if (data.data?.status === 'FAILED') {
+          throw new Error(data.data.error || 'Documentation generation failed')
+        } else if (data.data?.jobId) {
+          setGenerationStatus({
+            status: 'processing',
+            progress: 50,
+            jobId: data.data.jobId,
+            message: 'Generation in progress...',
+          })
+          checkGenerationStatus(data.data.jobId)
+        }
       }
     } catch (error) {
       console.error('Failed to generate docs:', error)

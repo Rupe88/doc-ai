@@ -72,15 +72,57 @@ export function RepoCard({ repo }: RepoCardProps) {
       })
 
       if (!response.ok) {
-        const data = await response.json()
+        const data = await response.json().catch(() => ({}))
         throw new Error(data.error?.message || 'Failed to sync repository')
       }
 
-      const data = await response.json()
+      // Handle SSE stream for real-time progress
+      const contentType = response.headers.get('content-type')
+      if (contentType?.includes('text/event-stream')) {
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+        
+        if (!reader) {
+          throw new Error('Failed to get response stream')
+        }
 
-      // Reload page to show updated status
-      if (data.success) {
+        let buffer = ''
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n\n')
+          buffer = lines.pop() || ''
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+                
+                if (data.type === 'complete') {
+                  // Reload page on completion
+                  window.location.reload()
+                  return
+                } else if (data.type === 'error') {
+                  throw new Error(data.message)
+                }
+              } catch (parseError) {
+                // Continue on parse errors
+              }
+            }
+          }
+        }
+        
+        // Stream ended - reload to show updated status
         window.location.reload()
+      } else {
+        // Fallback to JSON response
+        const data = await response.json()
+        if (data.success) {
+          window.location.reload()
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sync repository')

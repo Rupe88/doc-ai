@@ -5,15 +5,15 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // Exclude problematic packages from server-side rendering
+    serverComponentsExternalPackages: [
+      '@xenova/transformers',
+      'onnxruntime-node',
+      'madge',
+      'dependency-tree',
+      'filing-cabinet',
+    ],
   },
-  // Exclude problematic packages from server-side rendering
-  serverComponentsExternalPackages: [
-    '@xenova/transformers',
-    'onnxruntime-node',
-    'madge',
-    'dependency-tree',
-    'filing-cabinet',
-  ],
   images: {
     domains: ['avatars.githubusercontent.com', 'github.com'],
   },

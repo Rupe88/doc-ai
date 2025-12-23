@@ -1,7 +1,7 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
-export const maxDuration = 120
+export const maxDuration = 60 // 60 seconds max (Vercel Pro limit, free is 10s)
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/db/prisma'
@@ -15,6 +15,7 @@ import { createApiHandler, requireUser, getRequestBody } from '@/lib/utils/api-w
 import { successResponse, NotFoundError, ValidationError, RateLimitError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { rateLimit } from '@/lib/middleware/rate-limit'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 const generateSchema = z.object({
   repoId: z.string().cuid('Invalid repository ID'),
@@ -25,59 +26,240 @@ const generateSchema = z.object({
   }).optional(),
 })
 
-export const POST = createApiHandler(
-  async (context) => {
-    const user = requireUser(context)
-    const { repoId, options } = await getRequestBody(context, generateSchema)
+// Use streaming response for long-running generation
+export async function POST(request: NextRequest) {
+  try {
+    // Manual auth check since we're not using createApiHandler
+    const { requireAuth } = await import('@/lib/middleware/auth')
+    const authResult = await requireAuth(request)
+    if (authResult.response) return authResult.response
+    const user = authResult.user!
 
+    // Parse and validate body
+    const body = await request.json()
+    const parseResult = generateSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Invalid request: ' + parseResult.error.message } },
+        { status: 400 }
+      )
+    }
+    const { repoId, options } = parseResult.data
+
+    // Rate limiting
     const rateLimitResult = await rateLimit(user.id, user.subscriptionTier as any, 'generate', 3600)
-
     if (!rateLimitResult.allowed) {
       const waitMinutes = Math.ceil((rateLimitResult.resetAt - Date.now()) / 60000)
-      throw new RateLimitError(`Rate limit exceeded. Wait ${waitMinutes} minute(s).`)
+      return NextResponse.json(
+        { success: false, error: { message: `Rate limit exceeded. Wait ${waitMinutes} minute(s).` } },
+        { status: 429 }
+      )
     }
 
+    // Get repository
     const repo = await prisma.repo.findUnique({
       where: { id: repoId },
       include: { user: { select: { subscriptionTier: true, githubToken: true } } },
     })
 
-    if (!repo) throw new NotFoundError('Repository')
-    checkResourceAccess(user.id, repo.userId, 'Repository')
-    if (!repo.user.githubToken) throw new ValidationError('GitHub not connected')
+    if (!repo) {
+      return NextResponse.json({ success: false, error: { message: 'Repository not found' } }, { status: 404 })
+    }
+
+    if (repo.userId !== user.id) {
+      return NextResponse.json({ success: false, error: { message: 'Access denied' } }, { status: 403 })
+    }
+
+    if (!repo.user.githubToken) {
+      return NextResponse.json({ success: false, error: { message: 'GitHub not connected' } }, { status: 400 })
+    }
 
     const [owner, repoName] = repo.fullName.split('/')
-    if (!owner || !repoName) throw new ValidationError('Invalid repository format')
+    if (!owner || !repoName) {
+      return NextResponse.json({ success: false, error: { message: 'Invalid repository format' } }, { status: 400 })
+    }
 
+    // Create job
     const analysisJob = await prisma.analysisJob.create({
-      data: { repoId: repo.id, status: 'PENDING', progress: 0 },
+      data: { repoId: repo.id, status: 'PROCESSING', progress: 5, startedAt: new Date() },
     })
 
     await prisma.repo.update({ where: { id: repoId }, data: { status: 'ANALYZING' } })
 
     const accessToken = decrypt(repo.user.githubToken)
 
-    // Process in background - ULTRA FAST mode
-    processUltraFastGeneration({
-      jobId: analysisJob.id,
-      repoId: repo.id,
-      userId: repo.userId,
-      owner,
-      repoName,
-      branch: repo.defaultBranch,
-      accessToken,
-      options: options || { depth: 'standard' },
-    }).catch(console.error)
-
-    return successResponse({
-      jobId: analysisJob.id,
-      status: 'PENDING',
-      message: 'Ultra-fast documentation generation started',
-      rateLimit: { remaining: rateLimitResult.remaining, resetAt: rateLimitResult.resetAt },
+    logger.info('[Generate] Starting documentation generation', { 
+      jobId: analysisJob.id, 
+      repo: repo.fullName,
+      userId: user.id,
     })
-  },
-  { requireAuth: true, methods: ['POST'] }
-)
+
+    // Use streaming response for real-time progress
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (data: any) => {
+          // Always include jobId for frontend tracking
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ ...data, jobId: analysisJob.id })}\n\n`))
+        }
+
+        try {
+          send({ type: 'progress', progress: 5, message: 'Starting generation...' })
+
+          // STEP 1: Clone and analyze (fast, no AI)
+          send({ type: 'progress', progress: 10, message: 'Cloning repository...' })
+          
+          const github = new GitHubService(accessToken)
+          const cloner = new RepoCloner(github)
+          const repoPath = await cloner.cloneRepository(owner, repoName, repo.defaultBranch)
+          
+          send({ type: 'progress', progress: 20, message: 'Analyzing codebase...' })
+          
+          const files = await cloner.getFiles(repoPath)
+          logger.info(`[Generate] Found ${files.length} files`)
+          
+          const analyzer = new ComprehensiveAnalyzer(files, repoPath)
+          const analysis = await analyzer.analyze()
+          
+          logger.info(`[Generate] Analysis complete: ${analysis.functions.length} funcs, ${analysis.classes.length} classes, ${analysis.apiRoutes.length} APIs`)
+          
+          send({ type: 'progress', progress: 35, message: `Found ${files.length} files, ${analysis.functions.length} functions...` })
+          
+          await prisma.analysisJob.update({
+            where: { id: analysisJob.id },
+            data: { progress: 35 },
+          })
+
+          // Clear old docs
+          await prisma.doc.deleteMany({ where: { repoId } })
+          
+          // Start RAG indexing in background (don't wait)
+          indexToRAG(repoId, repoName, analysis).catch(e => logger.warn('[RAG] Indexing failed:', e.message))
+
+          // STEP 2: Get AI provider
+          send({ type: 'progress', progress: 40, message: 'Connecting to AI...' })
+          
+          let ai
+          try {
+            ai = await getAIProviderWithFallback()
+          } catch (aiError: any) {
+            logger.error('[Generate] No AI provider available:', aiError.message)
+            send({ type: 'error', message: 'No AI provider configured. Please add GEMINI_API_KEY, GROQ_API_KEY, or TOGETHER_API_KEY to your environment.' })
+            
+            await prisma.analysisJob.update({
+              where: { id: analysisJob.id },
+              data: { status: 'FAILED', error: 'No AI provider configured' },
+            })
+            await prisma.repo.update({ where: { id: repoId }, data: { status: 'ERROR' } })
+            await cloner.cleanup()
+            
+            controller.close()
+            return
+          }
+
+          // STEP 3: Generate documentation (with progress)
+          send({ type: 'progress', progress: 45, message: 'Generating overview documentation...' })
+
+          // MEGA-BATCH 1: Overview
+          const megaPrompt1 = buildMegaPrompt(repoName, analysis)
+          const megaDoc1 = await ai.chat(megaPrompt1)
+          
+          await saveDoc(repoId, user.id, `${repoName} - Complete Documentation`, 'overview', megaDoc1, 'OVERVIEW', null, { analysis: summarizeAnalysis(analysis) })
+          
+          send({ type: 'progress', progress: 60, message: 'Generating API and security docs...' })
+          await prisma.analysisJob.update({ where: { id: analysisJob.id }, data: { progress: 60 } })
+
+          // MEGA-BATCH 2: API + Security + Quality (parallel)
+          const [apiDoc, securityDoc, qualityDoc] = await Promise.all([
+            analysis.apiRoutes.length > 0 
+              ? ai.chat(buildApiPrompt(analysis.apiRoutes, analysis.middlewares))
+              : Promise.resolve(null),
+            (analysis.securityIssues.length > 0 || analysis.vulnerabilities.length > 0)
+              ? ai.chat(buildSecurityPrompt(analysis))
+              : Promise.resolve(null),
+            ai.chat(buildQualityPrompt(analysis)),
+          ])
+
+          if (apiDoc) await saveDoc(repoId, user.id, 'API Reference', 'api-reference', apiDoc, 'API', null, { routes: analysis.apiRoutes.length })
+          if (securityDoc) await saveDoc(repoId, user.id, 'Security Analysis', 'security', securityDoc, 'GUIDE', null, { issues: analysis.securityIssues.length })
+          await saveDoc(repoId, user.id, 'Code Quality Report', 'quality', qualityDoc, 'GUIDE', null, { score: analysis.qualityScore })
+          
+          send({ type: 'progress', progress: 80, message: 'Generating component and service docs...' })
+          await prisma.analysisJob.update({ where: { id: analysisJob.id }, data: { progress: 80 } })
+
+          // MEGA-BATCH 3: Components + Services + Models (parallel)
+          const [componentDoc, serviceDoc, modelDoc] = await Promise.all([
+            (analysis.components.length > 0 || analysis.hooks.length > 0)
+              ? ai.chat(buildComponentPrompt(analysis.components, analysis.hooks))
+              : Promise.resolve(null),
+            (analysis.services.length > 0 || analysis.controllers.length > 0)
+              ? ai.chat(buildServicePrompt(analysis.services, analysis.controllers, analysis.utilities))
+              : Promise.resolve(null),
+            analysis.models.length > 0
+              ? ai.chat(buildModelPrompt(analysis.models))
+              : Promise.resolve(null),
+          ])
+
+          if (componentDoc) await saveDoc(repoId, user.id, 'Frontend Components', 'components', componentDoc, 'FUNCTION', null, { count: analysis.components.length })
+          if (serviceDoc) await saveDoc(repoId, user.id, 'Backend Services', 'services', serviceDoc, 'CLASS', null, { count: analysis.services.length })
+          if (modelDoc) await saveDoc(repoId, user.id, 'Data Models', 'models', modelDoc, 'GUIDE', null, { count: analysis.models.length })
+
+          send({ type: 'progress', progress: 95, message: 'Finalizing...' })
+
+          // Cleanup
+          await cloner.cleanup()
+
+          // Complete
+          await prisma.analysisJob.update({
+            where: { id: analysisJob.id },
+            data: { status: 'COMPLETED', progress: 100, completedAt: new Date() },
+          })
+
+          await prisma.repo.update({
+            where: { id: repoId },
+            data: { status: 'READY', lastSyncedAt: new Date() },
+          })
+
+          logger.info('[Generate] Documentation generated successfully', { jobId: analysisJob.id })
+          
+          send({ type: 'complete', progress: 100, message: 'Documentation generated successfully!', jobId: analysisJob.id })
+
+        } catch (error: any) {
+          logger.error('[Generate] Failed:', error)
+          
+          send({ type: 'error', message: error.message || 'Documentation generation failed' })
+          
+          await prisma.analysisJob.update({
+            where: { id: analysisJob.id },
+            data: { status: 'FAILED', error: error.message || 'Unknown error' },
+          }).catch(() => {})
+          
+          await prisma.repo.update({ 
+            where: { id: repoId }, 
+            data: { status: 'ERROR' } 
+          }).catch(() => {})
+        }
+
+        controller.close()
+      },
+    })
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    })
+
+  } catch (error: any) {
+    logger.error('[Generate] Unexpected error:', error)
+    return NextResponse.json(
+      { success: false, error: { message: error.message || 'Internal server error' } },
+      { status: 500 }
+    )
+  }
+}
 
 // ULTRA FAST GENERATION - Target: Under 20 seconds
 async function processUltraFastGeneration(jobData: {
