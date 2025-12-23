@@ -25,7 +25,7 @@ export async function getUserByPaddleCustomerId(customerId: string) {
 
 export const TIER_LIMITS = {
   FREE: {
-    repos: 3, // Increased from 1 to 3 for free tier
+    repos: 30, // TEMPORARILY SET TO 30 FOR TESTING - CHANGE BACK TO 3 AFTER TESTING
     chatsPerMonth: 10,
     generateJobsPerDay: 1,
   },
