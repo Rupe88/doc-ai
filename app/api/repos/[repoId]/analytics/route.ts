@@ -4,12 +4,18 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/db/prisma'
-import { createApiHandler, requireUser } from '@/lib/utils/api-wrapper'
+import { logger } from '@/lib/utils/logger'
+
+// Simple in-memory cache for analytics (in production, use Redis)
+const analyticsCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+import { createApiHandler, requireUser, getRouteParams } from '@/lib/utils/api-wrapper'
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
-import { ComprehensiveAnalyzer } from '@/lib/analyzer/comprehensive-analyzer'
-import { RepoCloner } from '@/lib/github/repo-cloner'
-import { GitHubService } from '@/lib/github/service'
-import { decrypt } from '@/lib/security/encryption'
+import { z } from 'zod'
+
+const analyticsParamsSchema = z.object({
+  repoId: z.string().cuid('Invalid repository ID'),
+})
 
 /**
  * Get comprehensive analytics for a repository
@@ -18,10 +24,14 @@ import { decrypt } from '@/lib/security/encryption'
 export const GET = createApiHandler(
   async (context) => {
     const user = requireUser(context)
-    const repoId = context.params?.repoId as string
+    const { repoId } = getRouteParams(context, analyticsParamsSchema)
 
-    if (!repoId) {
-      throw new NotFoundError('Repository ID required')
+    // Check cache first
+    const cacheKey = `${user.id}:${repoId}`
+    const cached = analyticsCache.get(cacheKey)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      logger.info('Analytics cache hit', { repoId, userId: user.id })
+      return successResponse(cached.data)
     }
 
     const repo = await prisma.repo.findUnique({
@@ -52,167 +62,574 @@ export const GET = createApiHandler(
     if (!repo) throw new NotFoundError('Repository')
     checkResourceAccess(user.id, repo.userId, 'Repository')
 
-    // Try to get real-time analytics from comprehensive analysis
-    let analytics = null
-    try {
-      if (!repo.user.githubToken) {
-        throw new Error('No GitHub token available')
-      }
-      const accessToken = decrypt(repo.user.githubToken)
-      const [owner, repoName] = repo.fullName.split('/')
-      const githubService = new GitHubService(accessToken)
-      const repoCloner = new RepoCloner(githubService)
+    // Get analytics from existing documentation and database
+    const analytics = await generateAnalyticsFromDocs(repo)
 
-      const clonedPath = await repoCloner.cloneRepository(owner, repoName)
-      const files = await repoCloner.getFiles(clonedPath)
+    // Cache the result
+    analyticsCache.set(cacheKey, {
+      data: analytics,
+      timestamp: Date.now(),
+    })
 
-      if (files && files.length > 0) {
-        const analyzer = new ComprehensiveAnalyzer(files, clonedPath)
-        const analysis = await analyzer.analyze()
-
-        analytics = transformAnalysisToAnalytics(analysis, repo)
-      }
-
-      // Cleanup
-      await repoCloner.cleanup()
-    } catch (error) {
-      console.error('Failed to perform real-time analysis:', error)
-    }
-
-    // Fallback to cached analytics from metadata if real-time analysis failed
-    if (!analytics) {
-      const overviewDoc = repo.docs.find(d => d.type === 'OVERVIEW')
-      const metadata = (overviewDoc?.metadata as any) || {}
-
-      analytics = {
-        repository: {
-          id: repo.id,
-          name: repo.name,
-          fullName: repo.fullName,
-          status: repo.status,
-          lastSyncedAt: repo.lastSyncedAt,
-        },
-
-        // Code Statistics
-        stats: {
-          totalFiles: metadata.files || metadata.stats?.totalFiles || 0,
-          totalLines: metadata.stats?.totalLines || 0,
-          codeLines: metadata.stats?.codeLines || 0,
-          functions: metadata.functions || metadata.stats?.totalFunctions || 0,
-          classes: metadata.classes || metadata.stats?.totalClasses || 0,
-          components: metadata.components || metadata.stats?.totalComponents || 0,
-          apiEndpoints: metadata.apis || 0,
-          services: metadata.services || 0,
-          models: metadata.models || 0,
-        },
-
-        // Security Analysis
-        security: {
-          score: metadata.securityScore ?? 85,
-          issues: extractSecurityIssues(metadata),
-          vulnerabilities: extractVulnerabilities(metadata),
-          recommendations: generateSecurityRecommendations(metadata),
-        },
-
-        // Code Quality
-        quality: {
-          score: metadata.qualityScore ?? 80,
-          patterns: metadata.patterns || [],
-          complexity: {
-            average: calculateAverageComplexity(metadata),
-            hotspots: metadata.stats?.mostComplexFunctions?.slice(0, 5) || [],
-          },
-          issues: extractQualityIssues(metadata),
-          recommendations: generateQualityRecommendations(metadata),
-        },
-
-        // API Endpoints
-        endpoints: extractEndpoints(repo.docs, metadata),
-
-        // Dependencies
-        dependencies: {
-          production: metadata.dependencies || [],
-          development: metadata.devDependencies || [],
-          outdated: [], // Would need npm audit integration
-          vulnerable: [], // Would need security DB integration
-        },
-
-        // Documentation Coverage
-        documentation: {
-          totalDocs: repo.docs.length,
-          byType: countDocsByType(repo.docs),
-          lastGenerated: overviewDoc?.createdAt,
-          coverage: calculateDocCoverage(metadata, repo.docs.length),
-        },
-
-        // Trends (placeholder for historical data)
-        trends: {
-          securityScoreHistory: [{ date: new Date().toISOString(), score: metadata.securityScore ?? 85 }],
-          qualityScoreHistory: [{ date: new Date().toISOString(), score: metadata.qualityScore ?? 80 }],
-        },
+    // Clean up old cache entries (simple cleanup)
+    if (analyticsCache.size > 100) {
+      const cutoff = Date.now() - CACHE_DURATION
+      for (const [key, value] of analyticsCache.entries()) {
+        if (value.timestamp < cutoff) {
+          analyticsCache.delete(key)
+        }
       }
     }
 
+    logger.info('Analytics generated and cached', { repoId, userId: user.id })
     return successResponse(analytics)
   },
   { requireAuth: true, methods: ['GET'] }
 )
 
-function extractSecurityIssues(metadata: any): any[] {
-  const issues = metadata.securityIssues || []
-  return issues.map((issue: any) => ({
-    id: `sec-${Math.random().toString(36).slice(2)}`,
-    type: issue.type || 'UNKNOWN',
-    severity: issue.severity || 'MEDIUM',
-    message: issue.message || 'Security issue detected',
-    filePath: issue.filePath || '',
-    line: issue.line,
-    recommendation: issue.recommendation || 'Review and fix this issue',
-  }))
+
+/**
+ * Generate comprehensive analytics from existing docs and database
+ */
+async function generateAnalyticsFromDocs(repo: any) {
+  const overviewDoc = repo.docs.find((d: any) => d.type === 'OVERVIEW')
+  const apiDocs = repo.docs.filter((d: any) => d.type === 'API')
+  const functionDocs = repo.docs.filter((d: any) => d.type === 'FUNCTION')
+  const classDocs = repo.docs.filter((d: any) => d.type === 'CLASS')
+
+  const metadata = (overviewDoc?.metadata as any) || {}
+
+  // Extract statistics from docs
+  const stats = extractStatsFromDocs(repo.docs, metadata)
+
+  // Generate security analysis
+  const securityAnalysis = await generateSecurityAnalysis(repo, apiDocs, metadata)
+
+  // Generate quality analysis
+  const qualityAnalysis = generateQualityAnalysis(functionDocs, classDocs, metadata)
+
+  // Extract dependencies
+  const dependencies = extractDependencies(metadata)
+
+  // Generate endpoints
+  const endpoints = extractEndpointsFromDocs(repo.docs, metadata)
+
+  return {
+    repository: {
+      id: repo.id,
+      name: repo.name,
+      fullName: repo.fullName,
+      status: repo.status,
+      lastSyncedAt: repo.lastSyncedAt,
+    },
+    overview: {
+      totalFiles: stats.totalFiles,
+      totalLines: stats.totalLines,
+      codeLines: stats.codeLines,
+      functions: stats.functions,
+      classes: stats.classes,
+      components: stats.components,
+      apiRoutes: stats.apiRoutes,
+    },
+    stats,
+    security: securityAnalysis,
+    quality: qualityAnalysis,
+    dependencies,
+    endpoints,
+    patterns: metadata.patterns || extractPatternsFromDocs(repo.docs),
+    documentation: {
+      totalDocs: repo.docs.length,
+      byType: countDocsByType(repo.docs),
+      lastGenerated: overviewDoc?.createdAt,
+      coverage: calculateDocCoverage(stats, repo.docs.length),
+    },
+    lastUpdated: new Date().toISOString(),
+  }
 }
 
-function extractVulnerabilities(metadata: any): any[] {
-  const vulns = metadata.vulnerabilities || []
-  return vulns.map((vuln: any) => ({
-    id: `vuln-${Math.random().toString(36).slice(2)}`,
-    name: vuln.name || 'Vulnerability',
-    severity: vuln.severity || 'MEDIUM',
-    description: vuln.description || '',
-    file: vuln.file || '',
-    line: vuln.line,
-    cwe: vuln.cwe,
-    fix: vuln.fix || 'Review and patch this vulnerability',
-  }))
+/**
+ * Extract comprehensive statistics from documentation
+ */
+function extractStatsFromDocs(docs: any[], metadata: any) {
+  const apiDocs = docs.filter(d => d.type === 'API')
+  const functionDocs = docs.filter(d => d.type === 'FUNCTION')
+  const classDocs = docs.filter(d => d.type === 'CLASS')
+  const componentDocs = docs.filter(d => d.type === 'COMPONENT')
+
+  // Count API routes from docs
+  let apiRoutes = 0
+  for (const doc of apiDocs) {
+    const meta = doc.metadata as any
+    if (meta?.routes && Array.isArray(meta.routes)) {
+      apiRoutes += meta.routes.length
+    }
+  }
+
+  return {
+    totalFiles: metadata.files || metadata.stats?.totalFiles || docs.length,
+    totalLines: metadata.stats?.totalLines || 0,
+    codeLines: metadata.stats?.codeLines || 0,
+    functions: functionDocs.length || metadata.stats?.totalFunctions || 0,
+    classes: classDocs.length || metadata.stats?.totalClasses || 0,
+    components: componentDocs.length || metadata.stats?.totalComponents || 0,
+    apiEndpoints: apiDocs.length,
+    services: metadata.services || 0,
+    models: metadata.models || 0,
+    apiRoutes,
+  }
 }
 
-function generateSecurityRecommendations(metadata: any): string[] {
+/**
+ * Generate security analysis from docs and metadata
+ */
+async function generateSecurityAnalysis(repo: any, apiDocs: any[], metadata: any) {
+  const issues: any[] = []
+  const vulnerabilities: any[] = []
+
+  // Check for authentication issues
+  for (const doc of apiDocs) {
+    const meta = doc.metadata as any
+    if (meta?.routes) {
+      for (const route of meta.routes) {
+        if (!route.isProtected && (route.method === 'POST' || route.method === 'PUT' || route.method === 'DELETE')) {
+          issues.push({
+            type: 'UNPROTECTED_ENDPOINT',
+            severity: 'HIGH',
+            message: `Unprotected ${route.method} endpoint: ${route.path}`,
+            filePath: doc.filePath,
+            recommendation: 'Add authentication middleware to protect this endpoint',
+          })
+        }
+      }
+    }
+  }
+
+  // Check for common security issues in docs
+  const allDocs = repo.docs || []
+  for (const doc of allDocs) {
+    const content = (doc.content || '').toLowerCase()
+
+    // Check for hardcoded secrets
+    if (content.includes('password') || content.includes('secret') || content.includes('key') || content.includes('token')) {
+      if (content.includes('=') && (content.includes('"') || content.includes("'"))) {
+        issues.push({
+          type: 'POTENTIAL_HARDCODED_SECRET',
+          severity: 'HIGH',
+          message: `Potential hardcoded secret detected in ${doc.title}`,
+          filePath: doc.filePath,
+          recommendation: 'Move secrets to environment variables or secure key management',
+        })
+      }
+    }
+
+    // Check for insecure practices
+    if (content.includes('eval(') || content.includes('function(') && content.includes('string')) {
+      issues.push({
+        type: 'DANGEROUS_FUNCTION_USAGE',
+        severity: 'HIGH',
+        message: `Dangerous function usage detected in ${doc.title}`,
+        filePath: doc.filePath,
+        recommendation: 'Avoid using eval() or Function constructor with user input',
+      })
+    }
+
+    // Check for SQL injection patterns
+    if (content.includes('sql') || content.includes('query')) {
+      if (content.includes('select') && content.includes('+') && (content.includes('req.') || content.includes('request.'))) {
+        vulnerabilities.push({
+          name: 'SQL Injection',
+          severity: 'CRITICAL',
+          description: 'Potential SQL injection vulnerability detected',
+          file: doc.filePath,
+          cwe: 'CWE-89',
+          fix: 'Use parameterized queries or prepared statements',
+        })
+      }
+    }
+
+    // Check for XSS patterns
+    if (content.includes('innerhtml') || content.includes('outerhtml') || content.includes('dangerouslysetinnerhtml')) {
+      issues.push({
+        type: 'XSS_VULNERABILITY',
+        severity: 'HIGH',
+        message: `Potential XSS vulnerability in ${doc.title}`,
+        filePath: doc.filePath,
+        recommendation: 'Use safe HTML rendering methods and sanitize user input',
+      })
+    }
+  }
+
+  // Check for potential security issues in metadata
+  if (metadata.securityIssues) {
+    issues.push(...metadata.securityIssues.map((issue: any) => ({
+      type: issue.type || 'SECURITY_ISSUE',
+      severity: issue.severity || 'MEDIUM',
+      message: issue.message || 'Security issue detected',
+      filePath: issue.filePath || '',
+      line: issue.line,
+      recommendation: issue.recommendation || 'Review and fix this security issue',
+    })))
+  }
+
+  if (metadata.vulnerabilities) {
+    vulnerabilities.push(...metadata.vulnerabilities.map((vuln: any) => ({
+      name: vuln.name || 'Vulnerability',
+      severity: vuln.severity || 'MEDIUM',
+      description: vuln.description || '',
+      file: vuln.file || '',
+      line: vuln.line,
+      cwe: vuln.cwe,
+      fix: vuln.fix || `Review and fix ${vuln.name}`,
+    })))
+  }
+
+  // Check for missing security headers
+  const hasSecurityHeaders = allDocs.some((doc: any) =>
+    doc.content && (
+      doc.content.includes('helmet') ||
+      doc.content.includes('security') ||
+      doc.content.includes('csp') ||
+      doc.content.includes('content-security-policy')
+    )
+  )
+
+  if (!hasSecurityHeaders) {
+    issues.push({
+      type: 'MISSING_SECURITY_HEADERS',
+      severity: 'MEDIUM',
+      message: 'No security headers detected in the codebase',
+      filePath: '',
+      recommendation: 'Implement security headers like CSP, HSTS, X-Frame-Options',
+    })
+  }
+
+  // Calculate security score based on issues
+  const baseScore = 100
+  const issuePenalty = issues.length * 3
+  const vulnPenalty = vulnerabilities.length * 8
+  const unprotectedCount = issues.filter((i: any) => i.type === 'UNPROTECTED_ENDPOINT').length
+  const authPenalty = apiDocs.length > 0 ? unprotectedCount * 5 : 0
+  const securityScore = Math.max(0, Math.min(100, baseScore - issuePenalty - vulnPenalty - authPenalty))
+
+  const grade = securityScore >= 95 ? 'A' :
+                securityScore >= 85 ? 'B' :
+                securityScore >= 75 ? 'C' :
+                securityScore >= 65 ? 'D' : 'F'
+
+  return {
+    score: securityScore,
+    grade,
+    issues: issues.slice(0, 20), // Limit to prevent overwhelming UI
+    vulnerabilities: vulnerabilities.slice(0, 10),
+    recommendations: generateEnhancedSecurityRecommendations(issues, vulnerabilities, metadata),
+  }
+}
+
+/**
+ * Generate quality analysis from docs
+ */
+function generateQualityAnalysis(functionDocs: any[], classDocs: any[], metadata: any) {
+  const functions = functionDocs.length
+  const classes = classDocs.length
+
+  // Calculate complexity metrics
+  const avgComplexity = metadata.stats?.mostComplexFunctions?.length > 0
+    ? metadata.stats.mostComplexFunctions.reduce((sum: number, f: any) => sum + (f.complexity || 0), 0) / metadata.stats.mostComplexFunctions.length
+    : 5
+
+  const highestComplexities = metadata.stats?.mostComplexFunctions?.slice(0, 5) || []
+
+  // Calculate quality score
+  let qualityScore = 80 // Base score
+  if (functions === 0) qualityScore -= 20 // No functions documented
+  if (classes === 0) qualityScore -= 10 // No classes documented
+  if (avgComplexity > 15) qualityScore -= 15 // High complexity
+  if (metadata.patterns?.includes('Test Coverage')) qualityScore += 10
+
+  qualityScore = Math.max(0, Math.min(100, qualityScore))
+
+  const grade = qualityScore >= 95 ? 'A' :
+                qualityScore >= 85 ? 'B' :
+                qualityScore >= 75 ? 'C' :
+                qualityScore >= 65 ? 'D' : 'F'
+
+  return {
+    score: qualityScore,
+    grade,
+    patterns: metadata.patterns || [],
+    complexity: {
+      average: avgComplexity,
+      hotspots: highestComplexities.map((f: any) => ({
+        name: f.name || f.functionName || 'Unknown',
+        value: f.complexity || 0,
+        file: f.path || f.filePath || '',
+      })),
+      distribution: calculateComplexityDistribution(metadata.stats?.mostComplexFunctions || []),
+    },
+    issues: extractQualityIssues(metadata),
+    recommendations: generateQualityRecommendations(metadata),
+    maintainability: Math.max(0, Math.min(100, qualityScore + 10)),
+    testability: metadata.patterns?.includes('Test Coverage') ? 85 : 65,
+    techDebt: {
+      hours: Math.round((100 - qualityScore) * 0.8),
+      category: qualityScore > 85 ? 'Low' : qualityScore > 70 ? 'Medium' : 'High',
+      breakdown: generateTechDebtBreakdownFromMetadata(metadata, qualityScore),
+    },
+  }
+}
+
+/**
+ * Extract dependencies from metadata and analyze them
+ */
+function extractDependencies(metadata: any) {
+  const production = metadata.dependencies || []
+  const development = metadata.devDependencies || []
+
+  // Analyze dependencies for potential issues
+  const analyzedDeps = analyzeDependencies(production, development)
+
+  return {
+    total: production.length + development.length,
+    outdated: analyzedDeps.outdated,
+    vulnerable: analyzedDeps.vulnerable,
+    list: analyzedDeps.list,
+    production,
+    development,
+    summary: analyzedDeps.summary,
+  }
+}
+
+/**
+ * Analyze dependencies for vulnerabilities and issues
+ */
+function analyzeDependencies(production: any[], development: any[]) {
+  const allDeps = [
+    ...production.map((dep: any) => ({ ...dep, type: 'production' })),
+    ...development.map((dep: any) => ({ ...dep, type: 'development' })),
+  ]
+
+  let outdated = 0
+  let vulnerable = 0
+  const issues: any[] = []
+
+  // Known vulnerable packages (simplified - in production, use a proper vulnerability database)
+  const knownVulnerabilities: Record<string, any> = {
+    'lodash': { severity: 'MEDIUM', description: 'Prototype pollution vulnerability in older versions' },
+    'express': { severity: 'HIGH', description: 'Security vulnerabilities in versions < 4.17.0' },
+    'mongoose': { severity: 'MEDIUM', description: 'Potential injection vulnerabilities' },
+    'axios': { severity: 'LOW', description: 'Minor security issues in older versions' },
+    'jsonwebtoken': { severity: 'CRITICAL', description: 'RSA/ECDSA algorithm confusion vulnerability' },
+    'minimatch': { severity: 'HIGH', description: 'Regular expression denial of service' },
+    'moment': { severity: 'HIGH', description: 'Deprecated - use date-fns or dayjs' },
+    'request': { severity: 'CRITICAL', description: 'Deprecated - multiple security issues' },
+  }
+
+  for (const dep of allDeps) {
+    const name = typeof dep === 'string' ? dep : dep.name || ''
+    const version = typeof dep === 'string' ? 'unknown' : dep.version || ''
+
+    // Check for known vulnerabilities
+    if (knownVulnerabilities[name]) {
+      const vuln = knownVulnerabilities[name]
+      vulnerable++
+      issues.push({
+        name,
+        version,
+        type: 'VULNERABILITY',
+        severity: vuln.severity,
+        description: vuln.description,
+        recommendation: `Update ${name} to latest secure version`,
+      })
+    }
+
+    // Check for outdated versions (simplified check)
+    if (version && version.includes('^') && parseInt(version.replace('^', '').split('.')[0]) < 1) {
+      outdated++
+    }
+  }
+
+  // Check for dependency conflicts
+  const depNames = allDeps.map(dep => typeof dep === 'string' ? dep : dep.name).filter(Boolean)
+  const duplicates = depNames.filter((name, index) => depNames.indexOf(name) !== index)
+
+  if (duplicates.length > 0) {
+    issues.push({
+      name: 'Dependency Conflicts',
+      type: 'CONFLICT',
+      severity: 'MEDIUM',
+      description: `Duplicate dependencies detected: ${duplicates.join(', ')}`,
+      recommendation: 'Resolve dependency conflicts and remove duplicates',
+    })
+  }
+
+  return {
+    list: allDeps.map(dep => ({
+      name: typeof dep === 'string' ? dep : dep.name || '',
+      version: typeof dep === 'string' ? 'latest' : dep.version || 'unknown',
+      type: typeof dep === 'string' ? 'production' : dep.type || 'production',
+    })),
+    outdated,
+    vulnerable,
+    issues,
+    summary: {
+      total: allDeps.length,
+      production: production.length,
+      development: development.length,
+      issues: issues.length,
+      recommendations: [
+        'Regularly update dependencies to latest secure versions',
+        'Use npm audit or yarn audit to check for vulnerabilities',
+        'Consider using tools like Dependabot for automated updates',
+        'Remove unused dependencies to reduce attack surface',
+      ].slice(0, 4),
+    },
+  }
+}
+
+/**
+ * Extract endpoints from docs
+ */
+function extractEndpointsFromDocs(docs: any[], metadata: any): any[] {
+  const apiDocs = docs.filter(d => d.type === 'API')
+  const endpoints: any[] = []
+
+  // From docs
+  for (const doc of apiDocs) {
+    const meta = doc.metadata as any
+    if (meta?.routes && Array.isArray(meta.routes)) {
+      endpoints.push(...meta.routes.map((r: any) => ({
+        method: r.method || 'GET',
+        path: r.path || doc.title,
+        description: r.description || '',
+        isProtected: r.isProtected ?? false,
+        filePath: r.filePath || doc.filePath,
+      })))
+    }
+  }
+
+  // From metadata
+  if (metadata.apiRoutes && Array.isArray(metadata.apiRoutes)) {
+    for (const route of metadata.apiRoutes) {
+      if (!endpoints.some(e => e.path === route.path && e.method === route.method)) {
+        endpoints.push({
+          method: route.method || 'GET',
+          path: route.path,
+          description: route.description || '',
+          isProtected: route.isProtected ?? false,
+          filePath: route.filePath,
+        })
+      }
+    }
+  }
+
+  return endpoints.slice(0, 50)
+}
+
+/**
+ * Extract patterns from docs
+ */
+function extractPatternsFromDocs(docs: any[]): string[] {
+  const patterns = new Set<string>()
+
+  for (const doc of docs) {
+    const meta = doc.metadata as any
+    if (meta?.patterns && Array.isArray(meta.patterns)) {
+      meta.patterns.forEach((p: string) => patterns.add(p))
+    }
+  }
+
+  // Common patterns to detect
+  const languages = docs.map(d => d.filePath?.split('.').pop()).filter(Boolean)
+  if (languages.includes('ts')) patterns.add('TypeScript')
+  if (languages.includes('js')) patterns.add('JavaScript')
+  if (languages.includes('tsx') || languages.includes('jsx')) patterns.add('React')
+
+  if (docs.some(d => d.type === 'API')) patterns.add('REST API')
+  if (docs.some(d => d.type === 'COMPONENT')) patterns.add('Component Library')
+
+  return Array.from(patterns)
+}
+
+/**
+ * Calculate complexity distribution
+ */
+function calculateComplexityDistribution(functions: any[]) {
+  const distribution = { low: 0, medium: 0, high: 0, veryHigh: 0 }
+
+  for (const func of functions) {
+    const complexity = func.complexity || 0
+    if (complexity <= 5) distribution.low++
+    else if (complexity <= 10) distribution.medium++
+    else if (complexity <= 20) distribution.high++
+    else distribution.veryHigh++
+  }
+
+  return distribution
+}
+
+function countDocsByType(docs: any[]): Record<string, number> {
+  return docs.reduce((acc, doc) => {
+    acc[doc.type] = (acc[doc.type] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+}
+
+function calculateDocCoverage(stats: any, docCount: number): number {
+  const totalItems = (stats.functions || 0) + (stats.classes || 0) + (stats.apiEndpoints || 0)
+  if (totalItems === 0) return 100
+
+  // Rough estimate: each doc covers ~5 items on average
+  const coverage = Math.min(100, Math.round((docCount * 5 / totalItems) * 100))
+  return coverage
+}
+
+function generateEnhancedSecurityRecommendations(issues: any[], vulnerabilities: any[], metadata: any): string[] {
   const recommendations: string[] = []
-  const score = metadata.securityScore ?? 85
 
-  if (score < 50) {
-    recommendations.push('CRITICAL: Multiple security issues detected. Immediate review required.')
-  }
-  if (score < 70) {
-    recommendations.push('Review and remove any hardcoded secrets or API keys')
-    recommendations.push('Implement input validation on all user inputs')
-  }
-  if (score < 90) {
-    recommendations.push('Consider adding Content Security Policy headers')
-    recommendations.push('Enable HTTPS and secure cookie flags')
+  const criticalVulns = vulnerabilities.filter((v: any) => v.severity === 'CRITICAL').length
+  const highVulns = vulnerabilities.filter((v: any) => v.severity === 'HIGH').length
+  const unprotectedEndpoints = issues.filter((i: any) => i.type === 'UNPROTECTED_ENDPOINT').length
+  const hardcodedSecrets = issues.filter((i: any) => i.type === 'POTENTIAL_HARDCODED_SECRET').length
+  const sqlInjection = vulnerabilities.some((v: any) => v.name === 'SQL Injection')
+  const xssVulns = issues.some((i: any) => i.type === 'XSS_VULNERABILITY')
+
+  if (criticalVulns > 0) {
+    recommendations.push('🚨 CRITICAL: Address critical security vulnerabilities immediately')
   }
 
-  recommendations.push('Regularly update dependencies to patch known vulnerabilities')
-  recommendations.push('Implement rate limiting on public APIs')
+  if (highVulns > 0) {
+    recommendations.push('⚠️ HIGH PRIORITY: Fix high-severity security issues')
+  }
 
-  return recommendations.slice(0, 5)
-}
+  if (unprotectedEndpoints > 0) {
+    recommendations.push(`🔒 ${unprotectedEndpoints} unprotected API endpoints detected - add authentication`)
+  }
 
-function calculateAverageComplexity(metadata: any): number {
-  const functions = metadata.stats?.mostComplexFunctions || []
-  if (functions.length === 0) return 5
+  if (hardcodedSecrets > 0) {
+    recommendations.push('🔑 Move hardcoded secrets to environment variables')
+  }
 
-  const total = functions.reduce((sum: number, f: any) => sum + (f.complexity || 0), 0)
-  return Math.round(total / functions.length)
+  if (sqlInjection) {
+    recommendations.push('🛡️ Implement parameterized queries to prevent SQL injection')
+  }
+
+  if (xssVulns) {
+    recommendations.push('🔒 Sanitize user inputs and implement Content Security Policy')
+  }
+
+  if (issues.some((i: any) => i.type === 'MISSING_SECURITY_HEADERS')) {
+    recommendations.push('📊 Add security headers (CSP, HSTS, X-Frame-Options)')
+  }
+
+  if (issues.some((i: any) => i.type === 'DANGEROUS_FUNCTION_USAGE')) {
+    recommendations.push('🚫 Replace eval() and Function constructor with safer alternatives')
+  }
+
+  recommendations.push('🔄 Regularly update dependencies to patch known vulnerabilities')
+  recommendations.push('🛡️ Implement rate limiting on public APIs')
+  recommendations.push('📝 Conduct regular security audits and penetration testing')
+
+  return recommendations.slice(0, 8)
 }
 
 function extractQualityIssues(metadata: any): any[] {
@@ -254,212 +671,14 @@ function generateQualityRecommendations(metadata: any): string[] {
   return recommendations.slice(0, 5)
 }
 
-function extractEndpoints(docs: any[], metadata: any): any[] {
-  const apiDocs = docs.filter(d => d.type === 'API')
-  const endpoints: any[] = []
-
-  // From docs
-  for (const doc of apiDocs) {
-    const meta = doc.metadata as any
-    if (meta?.routes && Array.isArray(meta.routes)) {
-      endpoints.push(...meta.routes.map((r: any) => ({
-        method: r.method || 'GET',
-        path: r.path || doc.title,
-        description: r.description || '',
-        isProtected: r.isProtected ?? false,
-        filePath: r.filePath || doc.filePath,
-      })))
-    }
-  }
-
-  // From metadata
-  if (metadata.apiRoutes && Array.isArray(metadata.apiRoutes)) {
-    for (const route of metadata.apiRoutes) {
-      if (!endpoints.some(e => e.path === route.path && e.method === route.method)) {
-        endpoints.push({
-          method: route.method || 'GET',
-          path: route.path,
-          description: route.description || '',
-          isProtected: route.isProtected ?? false,
-          filePath: route.filePath,
-        })
-      }
-    }
-  }
-
-  return endpoints.slice(0, 50)
-}
-
-function countDocsByType(docs: any[]): Record<string, number> {
-  return docs.reduce((acc, doc) => {
-    acc[doc.type] = (acc[doc.type] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-}
-
-function calculateDocCoverage(metadata: any, docCount: number): number {
-  const totalItems = (metadata.functions || 0) + (metadata.classes || 0) + (metadata.apis || 0)
-  if (totalItems === 0) return 100
-
-  // Rough estimate: each doc covers ~5 items on average
-  const coverage = Math.min(100, Math.round((docCount * 5 / totalItems) * 100))
-  return coverage
-}
-
-function transformAnalysisToAnalytics(analysis: any, repo: any) {
-  // Transform comprehensive analysis to analytics format
-  const overview = {
-    totalFiles: analysis.stats.totalFiles,
-    totalLines: analysis.stats.totalLines,
-    codeLines: analysis.stats.codeLines,
-    functions: analysis.stats.totalFunctions,
-    classes: analysis.stats.totalClasses,
-    components: analysis.stats.totalComponents,
-    apiRoutes: analysis.stats.totalRoutes,
-  }
-
-  // Enhanced security analysis
-  const security = {
-    score: analysis.securityScore,
-    grade: getGradeFromScore(analysis.securityScore),
-    issues: analysis.securityIssues.map((issue: any) => ({
-      type: issue.type,
-      severity: issue.severity,
-      message: issue.message,
-      filePath: issue.filePath,
-      line: issue.line,
-      recommendation: issue.recommendation,
-    })),
-    vulnerabilities: analysis.vulnerabilities.map((vuln: any) => ({
-      name: vuln.name,
-      severity: vuln.severity,
-      description: vuln.description,
-      file: vuln.file,
-      line: vuln.line,
-      cwe: vuln.cwe,
-      fix: vuln.fix || `Review and fix ${vuln.name}`,
-    })),
-    recommendations: generateEnhancedSecurityRecommendations(analysis.securityIssues, analysis.vulnerabilities),
-  }
-
-  // Enhanced quality analysis
-  const complexityDistribution = {
-    low: 0,
-    medium: 0,
-    high: 0,
-    veryHigh: 0,
-  }
-
-  analysis.functions.forEach((func: any) => {
-    if (func.complexity <= 5) complexityDistribution.low++
-    else if (func.complexity <= 10) complexityDistribution.medium++
-    else if (func.complexity <= 20) complexityDistribution.high++
-    else complexityDistribution.veryHigh++
-  })
-
-  const quality = {
-    score: analysis.qualityScore,
-    grade: getGradeFromScore(analysis.qualityScore),
-    complexity: {
-      average: analysis.functions.length > 0
-        ? analysis.functions.reduce((sum: number, f: any) => sum + f.complexity, 0) / analysis.functions.length
-        : 0,
-      highest: analysis.stats.mostComplexFunctions.slice(0, 5).map((f: any) => ({
-        name: f.name,
-        value: f.complexity,
-        file: f.path,
-      })),
-      distribution: complexityDistribution,
-    },
-    maintainability: Math.max(0, Math.min(100, 100 - (analysis.qualityScore < 70 ? 30 : analysis.qualityScore < 85 ? 15 : 0))),
-    testability: analysis.patterns.includes('Test Coverage') ? 85 : 65,
-    techDebt: {
-      hours: Math.round((100 - analysis.qualityScore) * 0.8), // Rough estimate
-      category: analysis.qualityScore > 85 ? 'Low' : analysis.qualityScore > 70 ? 'Medium' : 'High',
-      breakdown: generateTechDebtBreakdown(analysis),
-    },
-  }
-
-  // Enhanced dependencies analysis
-  const dependencies = {
-    total: analysis.dependencies.length + analysis.devDependencies.length,
-    outdated: 0, // Would need npm audit integration
-    vulnerable: analysis.vulnerabilities.length,
-    list: [
-      ...analysis.dependencies.map((dep: any) => ({ name: dep.name, version: dep.version, type: 'production' })),
-      ...analysis.devDependencies.map((dep: any) => ({ name: dep.name, version: dep.version, type: 'development' })),
-    ],
-  }
-
-  return {
-    repository: {
-      id: repo.id,
-      name: repo.name,
-      fullName: repo.fullName,
-      status: repo.status,
-      lastSyncedAt: repo.lastSyncedAt,
-    },
-    overview,
-    security,
-    quality,
-    dependencies,
-    patterns: analysis.patterns,
-    lastUpdated: new Date().toISOString(),
-  }
-}
-
-function getGradeFromScore(score: number): string {
-  if (score >= 95) return 'A'
-  if (score >= 85) return 'B'
-  if (score >= 75) return 'C'
-  if (score >= 65) return 'D'
-  return 'F'
-}
-
-function generateEnhancedSecurityRecommendations(issues: any[], vulnerabilities: any[]): string[] {
-  const recommendations: string[] = []
-
-  const criticalVulns = vulnerabilities.filter((v: any) => v.severity === 'CRITICAL').length
-  const highVulns = vulnerabilities.filter((v: any) => v.severity === 'HIGH').length
-  const sqlInjection = vulnerabilities.some((v: any) => v.name === 'SQL Injection')
-  const xssVulns = vulnerabilities.some((v: any) => v.name === 'XSS')
-
-  if (criticalVulns > 0) {
-    recommendations.push('🚨 CRITICAL: Address critical security vulnerabilities immediately')
-  }
-
-  if (highVulns > 0) {
-    recommendations.push('⚠️ HIGH PRIORITY: Fix high-severity security issues')
-  }
-
-  if (sqlInjection) {
-    recommendations.push('🛡️ Implement parameterized queries to prevent SQL injection')
-  }
-
-  if (xssVulns) {
-    recommendations.push('🔒 Sanitize user inputs and use Content Security Policy')
-  }
-
-  if (issues.some((i: any) => i.type === 'HARDCODED_SECRET')) {
-    recommendations.push('🔑 Move hardcoded secrets to environment variables')
-  }
-
-  if (issues.some((i: any) => i.type === 'EVAL_USAGE')) {
-    recommendations.push('🚫 Replace eval() with safer alternatives')
-  }
-
-  recommendations.push('🔄 Regularly update dependencies to patch known vulnerabilities')
-  recommendations.push('🛡️ Implement rate limiting on public APIs')
-  recommendations.push('📊 Enable security headers (CSP, HSTS, X-Frame-Options)')
-
-  return recommendations.slice(0, 8)
-}
-
-function generateTechDebtBreakdown(analysis: any): any[] {
+/**
+ * Generate tech debt breakdown from metadata
+ */
+function generateTechDebtBreakdownFromMetadata(metadata: any, qualityScore: number): any[] {
   const breakdown = []
 
   // Complexity debt
-  const highComplexity = analysis.functions.filter((f: any) => f.complexity > 15).length
+  const highComplexity = metadata.stats?.mostComplexFunctions?.filter((f: any) => f.complexity > 15).length || 0
   if (highComplexity > 0) {
     breakdown.push({
       type: 'High Complexity Functions',
@@ -469,16 +688,16 @@ function generateTechDebtBreakdown(analysis: any): any[] {
   }
 
   // Missing tests
-  if (!analysis.patterns.includes('Test Coverage')) {
+  if (!metadata.patterns?.includes('Test Coverage')) {
     breakdown.push({
       type: 'Missing Test Coverage',
-      hours: Math.round(analysis.stats.totalFunctions * 0.5),
+      hours: Math.round((metadata.stats?.totalFunctions || 0) * 0.5),
       priority: 'Medium',
     })
   }
 
   // Long functions
-  const longFunctions = analysis.functions.filter((f: any) => (f.lineEnd - f.lineStart) > 50).length
+  const longFunctions = metadata.stats?.mostComplexFunctions?.filter((f: any) => (f.lineEnd - f.lineStart) > 50).length || 0
   if (longFunctions > 0) {
     breakdown.push({
       type: 'Long Functions',
@@ -488,7 +707,9 @@ function generateTechDebtBreakdown(analysis: any): any[] {
   }
 
   // Missing documentation
-  const undocumented = Math.round(analysis.stats.totalFunctions * 0.3)
+  const totalFunctions = metadata.stats?.totalFunctions || 0
+  const documentedFunctions = metadata.stats?.totalFunctions || 0 // Assuming documented = total for now
+  const undocumented = Math.max(0, totalFunctions - documentedFunctions)
   if (undocumented > 0) {
     breakdown.push({
       type: 'Undocumented Code',

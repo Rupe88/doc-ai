@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, GitBranch, Clock, Sparkles, Plus, Loader2 } from 'lucide-react'
+import { FileText, GitBranch, Clock, Sparkles, Plus, Loader2, RefreshCw } from 'lucide-react'
 
 interface RepoCardProps {
   repo: {
@@ -23,6 +23,7 @@ interface RepoCardProps {
 
 export function RepoCard({ repo }: RepoCardProps) {
   const [connecting, setConnecting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleConnect = async () => {
@@ -47,7 +48,7 @@ export function RepoCard({ repo }: RepoCardProps) {
       }
 
       const data = await response.json()
-      
+
       // Reload page to show updated status
       if (data.success) {
         window.location.reload()
@@ -55,6 +56,35 @@ export function RepoCard({ repo }: RepoCardProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect repository')
       setConnecting(false)
+    }
+  }
+
+  const handleSync = async () => {
+    if (!repo.internalId) return
+
+    try {
+      setSyncing(true)
+      setError(null)
+
+      const response = await fetch(`/api/sync/${repo.internalId}`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error?.message || 'Failed to sync repository')
+      }
+
+      const data = await response.json()
+
+      // Reload page to show updated status
+      if (data.success) {
+        window.location.reload()
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sync repository')
+      setSyncing(false)
     }
   }
 
@@ -145,14 +175,17 @@ export function RepoCard({ repo }: RepoCardProps) {
                   </Link>
                 </Button>
                 <Button
-                  asChild
+                  onClick={handleSync}
+                  disabled={syncing}
                   size="sm"
                   variant="ghost"
                   className="h-8 px-2 text-gray-400 hover:text-white hover:bg-gray-600"
                 >
-                  <Link href={`/api/sync/${repo.internalId}`}>
-                    <GitBranch className="w-4 h-4" />
-                  </Link>
+                  {syncing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
                 </Button>
               </>
             ) : (

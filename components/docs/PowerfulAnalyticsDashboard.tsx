@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { RefreshCw, AlertCircle, TrendingUp } from 'lucide-react'
 
 interface AnalyticsData {
   repository: {
@@ -105,28 +106,135 @@ function getGradeFromScore(score: number): string {
 export function PowerfulAnalyticsDashboard({ repoId }: PowerfulAnalyticsDashboardProps) {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'security' | 'quality' | 'dependencies'>('overview')
 
   useEffect(() => {
     fetchAnalytics()
   }, [repoId])
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (isRefresh = false) => {
     try {
+      if (isRefresh) {
+        setRefreshing(true)
+        setError(null)
+      } else {
+        setLoading(true)
+      }
+
       const res = await fetch(`/api/repos/${repoId}/analytics`, {
         credentials: 'include',
       })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.success && data.data) {
-          setAnalytics(data.data)
-        }
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch analytics: ${res.status} ${res.statusText}`)
       }
+
+      const data = await res.json()
+
+      if (!data.success) {
+        throw new Error(data.error?.message || 'Failed to load analytics data')
+      }
+
+      if (!data.data) {
+        throw new Error('No analytics data available')
+      }
+
+      // Validate the analytics data structure
+      if (!data.data.repository || !data.data.security || !data.data.quality) {
+        throw new Error('Invalid analytics data structure')
+      }
+
+      setAnalytics(data.data)
+      setError(null)
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError(errorMessage)
+
+      // Only set fallback data on initial load, not on refresh
+      if (!isRefresh && !analytics) {
+        setAnalytics({
+          repository: {
+            id: repoId,
+            name: 'Repository',
+            fullName: 'Unknown',
+            status: 'UNKNOWN',
+            lastSyncedAt: '',
+          },
+          overview: {
+            totalFiles: 0,
+            totalLines: 0,
+            codeLines: 0,
+            functions: 0,
+            classes: 0,
+            components: 0,
+            apiRoutes: 0,
+          },
+          stats: {
+            totalFiles: 0,
+            totalLines: 0,
+            codeLines: 0,
+            functions: 0,
+            classes: 0,
+            components: 0,
+            apiEndpoints: 0,
+            services: 0,
+            models: 0,
+          },
+          security: {
+            score: 0,
+            grade: 'F',
+            issues: [],
+            vulnerabilities: [],
+            recommendations: [errorMessage],
+          },
+          quality: {
+            score: 0,
+            grade: 'F',
+            patterns: [],
+            complexity: {
+              average: 0,
+              hotspots: [],
+            },
+            issues: [],
+            recommendations: [errorMessage],
+            maintainability: 0,
+            testability: 0,
+            techDebt: {
+              hours: 0,
+              category: 'Unknown',
+              breakdown: [],
+            },
+          },
+          dependencies: {
+            total: 0,
+            outdated: 0,
+            vulnerable: 0,
+            list: [],
+            production: [],
+            development: [],
+          },
+          endpoints: [],
+          patterns: [],
+          documentation: {
+            totalDocs: 0,
+            byType: {},
+            lastGenerated: '',
+            coverage: 0,
+          },
+          lastUpdated: new Date().toISOString(),
+        })
+      }
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleRefresh = () => {
+    fetchAnalytics(true)
   }
 
   if (loading) {
@@ -147,6 +255,52 @@ export function PowerfulAnalyticsDashboard({ repoId }: PowerfulAnalyticsDashboar
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-1">Repository Analytics</h2>
+          <p className="text-slate-400">
+            Comprehensive analysis of your codebase security, quality, and structure
+          </p>
+          {analytics?.lastUpdated && (
+            <p className="text-xs text-slate-500 mt-1">
+              Last updated: {new Date(analytics.lastUpdated).toLocaleString()}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing || loading}
+          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-500/10 border border-red-500/20 rounded-xl p-4"
+        >
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-red-400 font-semibold">Analytics Error</h3>
+              <p className="text-red-300 text-sm mt-1">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-300 text-sm underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Tab Navigation */}
       <div className="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
         {(['overview', 'security', 'quality', 'dependencies'] as const).map((tab) => (

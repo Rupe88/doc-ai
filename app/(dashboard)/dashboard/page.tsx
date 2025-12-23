@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { RepoCard } from '@/components/dashboard/RepoCard'
 import { Button } from '@/components/ui/button'
 import { Plus, Search, Sparkles, TrendingUp } from 'lucide-react'
-import Link from 'next/link'
 import { useAuth, redirectToLogin } from '@/lib/utils/auth-client'
 
 export default function DashboardPage() {
@@ -93,10 +92,10 @@ export default function DashboardPage() {
                 asChild
                 className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
               >
-                <Link href="/api/github/connect">
+                <a href="/api/github/connect">
                   <Plus className="w-4 h-4 mr-2" />
                   New
-                </Link>
+                </a>
               </Button>
             </div>
 
@@ -185,10 +184,10 @@ export default function DashboardPage() {
               asChild
               className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
             >
-              <Link href="/api/github/connect">
+              <a href="/api/github/connect">
                 <Plus className="w-4 h-4 mr-2" />
                 Add repository
-              </Link>
+              </a>
             </Button>
           </motion.div>
         ) : (

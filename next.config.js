@@ -6,6 +6,14 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Exclude problematic packages from server-side rendering
+  serverComponentsExternalPackages: [
+    '@xenova/transformers',
+    'onnxruntime-node',
+    'madge',
+    'dependency-tree',
+    'filing-cabinet',
+  ],
   images: {
     domains: ['avatars.githubusercontent.com', 'github.com'],
   },
@@ -41,14 +49,6 @@ const nextConfig = {
 
     return config
   },
-    // Exclude problematic packages from server-side rendering
-    serverComponentsExternalPackages: [
-    '@xenova/transformers',
-    'onnxruntime-node',
-    'madge',
-    'dependency-tree',
-    'filing-cabinet',
-  ],
 }
 
 module.exports = nextConfig
