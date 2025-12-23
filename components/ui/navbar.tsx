@@ -45,6 +45,12 @@ export function Navbar() {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-6">
             <Link
+              href="/demo"
+              className="text-amber-400 hover:text-amber-300 transition-colors text-sm font-medium"
+            >
+              Live Demo
+            </Link>
+            <Link
               href="/#features"
               className="text-gray-300 hover:text-white transition-colors text-sm"
             >
@@ -55,12 +61,6 @@ export function Navbar() {
               className="text-gray-300 hover:text-white transition-colors text-sm"
             >
               Pricing
-            </Link>
-            <Link
-              href="/#docs"
-              className="text-gray-300 hover:text-white transition-colors text-sm"
-            >
-              Docs
             </Link>
             <Link
               href="/api/github/connect"
@@ -98,6 +98,13 @@ export function Navbar() {
           >
             <div className="px-4 py-4 space-y-4">
               <Link
+                href="/demo"
+                className="block text-amber-400 hover:text-amber-300 transition-colors font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Live Demo
+              </Link>
+              <Link
                 href="/#features"
                 className="block text-gray-300 hover:text-white transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
@@ -110,13 +117,6 @@ export function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Pricing
-              </Link>
-              <Link
-                href="/#docs"
-                className="block text-gray-300 hover:text-white transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Docs
               </Link>
               <Link
                 href="/api/github/connect"
