@@ -205,8 +205,8 @@ export default function DemoPage() {
             <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Demo</span>
           </Link>
           <a
-            href="/api/github/connect"
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            onClick={() => window.location.href = '/api/github/connect'}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer"
           >
             <Github className="w-4 h-4" />
             Try with your repo
@@ -486,8 +486,8 @@ export default function DemoPage() {
               Ready to document YOUR codebase?
             </h2>
             <a
-              href="/api/github/connect"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
+              onClick={() => window.location.href = '/api/github/connect'}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all cursor-pointer"
             >
               Connect GitHub - It's Free
             </a>

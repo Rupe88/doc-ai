@@ -73,13 +73,11 @@ export function Hero() {
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
               <Button
-                asChild
+                onClick={() => window.location.href = '/api/github/connect'}
                 size="lg"
                 className="relative bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-4 font-semibold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-105"
               >
-                <Link href="/api/github/connect" className="flex items-center gap-3">
-                  <span>Try DocAI Free</span>
-                </Link>
+                <span>Try DocAI Free</span>
               </Button>
             </div>
 

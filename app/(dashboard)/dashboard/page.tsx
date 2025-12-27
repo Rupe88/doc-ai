@@ -119,13 +119,11 @@ export default function DashboardPage() {
               {/* Profile Section */}
               <div className="flex items-center space-x-4">
                 <Button
-                  asChild
+                  onClick={() => window.location.href = '/api/github/connect'}
                   className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg"
                 >
-                  <a href="/api/github/connect">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Connect Repository
-                  </a>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Connect Repository
                 </Button>
 
                 {/* User Profile Dropdown */}
@@ -263,13 +261,11 @@ export default function DashboardPage() {
               Get started by connecting your first repository.
             </p>
             <Button
-              asChild
+              onClick={() => window.location.href = '/api/github/connect'}
               className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg"
             >
-              <a href="/api/github/connect">
-                <Plus className="w-4 h-4 mr-2" />
-                Connect Repository
-              </a>
+              <Plus className="w-4 h-4 mr-2" />
+              Connect Repository
             </Button>
           </motion.div>
         ) : (

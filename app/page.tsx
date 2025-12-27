@@ -640,7 +640,7 @@ export default function Home() {
               className="mb-6"
             >
               <motion.a
-                href="/api/github/connect"
+                onClick={() => window.location.href = '/api/github/connect'}
                 className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all duration-300 group"
                 whileHover={{ scale: 1.02 }}
               >
@@ -692,7 +692,7 @@ export default function Home() {
                 <li><a href="#features" className="text-gray-400 hover:text-white transition-colors font-poppins">Features</a></li>
                 <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors font-poppins">Pricing</a></li>
                 <li><a href="/demo" className="text-gray-400 hover:text-white transition-colors font-poppins">Demo</a></li>
-                <li><a href="/api/github/connect" className="text-gray-400 hover:text-white transition-colors font-poppins">Get Started</a></li>
+                <li><a onClick={() => window.location.href = '/api/github/connect'} className="text-gray-400 hover:text-white transition-colors font-poppins cursor-pointer">Get Started</a></li>
               </ul>
             </div>
 
