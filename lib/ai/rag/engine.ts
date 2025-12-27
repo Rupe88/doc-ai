@@ -11,7 +11,7 @@
 import { getVoyageEmbeddings, VoyageEmbeddings } from './voyage-embeddings'
 import { getQdrantStore, QdrantStore, SearchResult } from './qdrant-store'
 import { getAIProviderWithFallback } from '../providers/factory'
-import crypto from 'crypto'
+import * as crypto from 'crypto'
 
 export interface CodeChunk {
   id: string

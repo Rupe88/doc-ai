@@ -1,126 +1,123 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import { Button } from './button'
-import { ArrowRight, Sparkles, Zap, Code2 } from 'lucide-react'
+import { ArrowRight, Play, Snowflake } from 'lucide-react'
 import Link from 'next/link'
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-600/10 border border-blue-600/20 mb-8"
-          >
-            <Sparkles className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-medium">AI-Powered Documentation</span>
-          </motion.div>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+      {/* Winter Background Effects */}
+      <div className="absolute inset-0">
+        {/* Animated snow particles */}
+        <div className="absolute top-10 left-10 w-2 h-2 bg-white rounded-full opacity-20 animate-pulse"></div>
+        <div className="absolute top-20 right-20 w-1 h-1 bg-blue-200 rounded-full opacity-30 animate-pulse delay-300"></div>
+        <div className="absolute bottom-32 left-1/4 w-1.5 h-1.5 bg-cyan-200 rounded-full opacity-25 animate-pulse delay-700"></div>
+        <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-white rounded-full opacity-40 animate-pulse delay-1000"></div>
 
-          {/* Main Heading */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl md:text-6xl font-bold mb-6 text-foreground leading-tight"
-          >
-            Generate comprehensive docs
-            <br />
-            <span className="text-blue-400">automatically</span>
-          </motion.h1>
-
-          {/* Subheading */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
-          >
-            The only documentation tool that auto-generates comprehensive, AI-powered docs
-            with deep code analysis, security scanning, and natural language understanding.
-          </motion.p>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
-          >
-            <Button
-              asChild
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg group"
-            >
-              <Link href="/api/github/connect">
-                Get started
-                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="border-gray-600 text-white hover:bg-gray-800 hover:border-gray-500"
-            >
-              <Link href="/#features">View features</Link>
-            </Button>
-          </motion.div>
-
-          {/* Features Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto"
-          >
-            {[
-              { icon: Zap, text: '10x faster', subtext: 'Auto-generate docs' },
-              { icon: Code2, text: 'AI-powered', subtext: 'Deep code analysis' },
-              { icon: Sparkles, text: 'In-depth', subtext: 'Comprehensive docs' },
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                className="bg-card border border-border rounded-md p-4 hover:shadow-github transition-all hover-github"
-              >
-                <feature.icon className="w-6 h-6 text-blue-400 mb-2 mx-auto" />
-                <h3 className="text-foreground font-semibold text-sm mb-1">{feature.text}</h3>
-                <p className="text-muted-foreground text-xs">{feature.subtext}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+        {/* Ice crystal effects */}
+        <div className="absolute top-20 left-20 w-32 h-32 bg-blue-400/5 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-40 h-40 bg-cyan-400/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
       </div>
 
-      {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-      >
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-6 h-10 border-2 border-border rounded-full flex justify-center"
-        >
-          <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-1 h-3 bg-foreground rounded-full mt-2"
-          />
-        </motion.div>
-      </motion.div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center">
+          {/* Winter Badge */}
+          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-6 py-3 mb-8">
+            <Snowflake className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm text-cyan-400 font-medium">Winter Special</span>
+            <span className="text-sm text-gray-300 font-medium">4 repos FREE forever</span>
+          </div>
+
+          {/* Eye-catching Headline */}
+          <h1 className="text-5xl md:text-7xl font-bold mb-8 font-poppins leading-tight">
+            <span className="block bg-gradient-to-r from-white via-cyan-100 to-white bg-clip-text text-transparent">
+              Never Write
+            </span>
+            <span className="block bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">
+              Documentation
+            </span>
+            <span className="block text-white mt-2">
+              Again.
+            </span>
+          </h1>
+
+          <div className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent font-poppins mb-8">
+            Your Codebase, Perfected.
+          </div>
+
+          {/* Compelling winter-themed copy */}
+          <p className="text-lg md:text-xl text-gray-300 max-w-4xl mx-auto mb-12 font-poppins leading-relaxed">
+            Experience the <span className="text-cyan-400 font-semibold">frozen revolution</span> in documentation.
+            DocAI reads every file and generates comprehensive docs in <span className="text-green-400 font-bold">56 seconds</span>.
+          </p>
+
+          {/* Eye-catching feature highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 max-w-3xl mx-auto">
+            <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg px-4 py-3 backdrop-blur-sm">
+              <span className="text-blue-400 font-semibold text-sm">AI-Powered</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg px-4 py-3 backdrop-blur-sm">
+              <span className="text-green-400 font-bold text-lg">56s</span>
+              <span className="text-green-400 font-semibold text-sm">Average</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg px-4 py-3 backdrop-blur-sm">
+              <span className="text-purple-400 font-semibold text-sm">4 Repos FREE</span>
+            </div>
+          </div>
+
+          {/* CTA Buttons with winter glow */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+              <Button
+                asChild
+                size="lg"
+                className="relative bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-4 font-semibold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 group-hover:scale-105"
+              >
+                <Link href="/api/github/connect" className="flex items-center gap-3">
+                  <span>Try DocAI Free</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="relative group">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="border-2 border-white/20 text-white hover:bg-white/10 hover:border-cyan-400/50 px-8 py-4 font-semibold rounded-xl backdrop-blur-sm transition-all duration-300 group-hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                <Link href="/demo" className="flex items-center gap-3">
+                  <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <span>Watch Live Demo</span>
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Social proof with winter theme */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-cyan-400 font-poppins mb-2">56s</div>
+              <div className="text-gray-400 text-sm font-medium">Average generation time</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-green-400 font-poppins mb-2">20+</div>
+              <div className="text-gray-400 text-sm font-medium">Happy developers</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-purple-400 font-poppins mb-2">4</div>
+              <div className="text-gray-400 text-sm font-medium">Free repositories</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }
-
-
-

@@ -258,8 +258,8 @@ export class ComprehensiveAnalyzer {
     const { dependencies, devDependencies } = this.extractDependencies()
     const stats = this.calculateStats(functions, classes, components, apiRoutes)
     
-    // Security & Quality Analysis
-    const { securityIssues, vulnerabilities, securityScore } = this.analyzeSecurityIssues()
+    // Security & Quality Analysis (Enhanced Framework-Aware)
+    const { securityIssues, vulnerabilities, securityScore } = await this.analyzeSecurityIssues()
     const dependencyVulnerabilities = this.analyzeDependencyVulnerabilities(dependencies, devDependencies)
     const allVulnerabilities = [...vulnerabilities, ...dependencyVulnerabilities]
     const { qualityScore, patterns } = this.analyzeCodeQuality(functions, classes)
@@ -366,9 +366,41 @@ export class ComprehensiveAnalyzer {
     return true
   }
 
-  private analyzeSecurityIssues(): { securityIssues: SecurityIssue[]; vulnerabilities: Vulnerability[]; securityScore: number } {
-    const securityIssues: SecurityIssue[] = []
-    const vulnerabilities: Vulnerability[] = []
+  private async analyzeSecurityIssues(): Promise<{ securityIssues: SecurityIssue[]; vulnerabilities: Vulnerability[]; securityScore: number }> {
+    // Use enhanced security scanner for better injection detection
+    const { performEnhancedSecurityScan } = await import('../ai/enhanced-security-scanner')
+
+    try {
+      const scanResult = await performEnhancedSecurityScan(this.files)
+      const securityIssues = scanResult.issues.map(issue => ({
+        type: issue.type.toUpperCase().replace('_', '_'),
+        severity: issue.severity.toUpperCase() as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+        message: issue.description,
+        filePath: issue.filePath,
+        line: issue.line
+      }))
+
+      // Get dependency vulnerabilities (existing logic)
+      const dependencyVulnerabilities = this.analyzeDependencyVulnerabilities(
+        this.extractDependencies().dependencies,
+        this.extractDependencies().devDependencies
+      )
+
+      const securityScore = scanResult.summary.score
+
+      return {
+        securityIssues,
+        vulnerabilities: dependencyVulnerabilities,
+        securityScore
+      }
+    } catch (error) {
+      console.warn('[ComprehensiveAnalyzer] Enhanced security scan failed, falling back to basic analysis:', error)
+
+      // Fallback to basic analysis
+      const securityIssues: SecurityIssue[] = []
+      const vulnerabilities: Vulnerability[] = []
+
+      // Original basic security analysis logic...
 
     for (const file of this.files) {
       if (!this.isSourceFile(file)) continue
@@ -579,7 +611,8 @@ export class ComprehensiveAnalyzer {
       (lowCount * 2)
     )
 
-    return { securityIssues: uniqueIssues, vulnerabilities: uniqueVulnerabilities, securityScore }
+      return { securityIssues: uniqueIssues, vulnerabilities: uniqueVulnerabilities, securityScore }
+    }
   }
 
   private analyzeCodeQuality(functions: FunctionInfo[], classes: ClassInfo[]): { qualityScore: number; patterns: string[] } {

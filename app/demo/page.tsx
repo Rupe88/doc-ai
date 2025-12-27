@@ -201,7 +201,6 @@ export default function DemoPage() {
       <header className="border-b border-white/10 bg-black/20 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-indigo-400" />
             <span className="font-bold text-white text-lg">DocAI</span>
             <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Demo</span>
           </Link>
@@ -237,12 +236,12 @@ export default function DemoPage() {
             <motion.button
               onClick={simulateGeneration}
               disabled={generating}
-              whileHover={{ scale: generating ? 1 : 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center gap-3 px-8 py-4 rounded-xl text-lg font-semibold transition-all ${
-                generating 
-                  ? 'bg-indigo-600/50 text-white/70 cursor-wait'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40'
+              whileHover={{ scale: generating ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`flex items-center gap-3 px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 ${
+                generating
+                  ? 'bg-gray-600 text-gray-400 cursor-wait'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl'
               }`}
             >
               {generating ? (
@@ -495,7 +494,7 @@ export default function DemoPage() {
               <ArrowRight className="w-5 h-5" />
             </a>
             <p className="text-slate-500 text-sm mt-3">
-              No credit card required. 3 repos free forever.
+              No credit card required. 4 repos free forever.
             </p>
           </motion.div>
         )}

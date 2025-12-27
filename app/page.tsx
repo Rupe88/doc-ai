@@ -9,7 +9,6 @@ import { PricingCard } from '@/components/ui/pricing-card'
 import {
   Zap,
   Code2,
-  Shield,
   Search,
   GitBranch,
   Sparkles,
@@ -56,7 +55,7 @@ export default function Home() {
     {
       icon: Zap,
       title: 'Instant Documentation',
-      description: 'Generate comprehensive docs in 30 seconds. No manual writing - ever.',
+      description: 'Generate comprehensive docs in 56 seconds. No manual writing - ever.',
     },
     {
       icon: Brain,
@@ -72,11 +71,6 @@ export default function Home() {
       icon: Code2,
       title: 'API Auto-Documentation',
       description: 'Automatically detect and document all API endpoints with OpenAPI spec generation.',
-    },
-    {
-      icon: Shield,
-      title: 'Security Scanning',
-      description: 'Find vulnerabilities: SQL injection, XSS, hardcoded secrets, and 15+ security issues.',
     },
     {
       icon: BarChart3,
@@ -101,12 +95,16 @@ export default function Home() {
   ]
 
   const comparisons = [
-    { feature: 'Auto-generate docs', us: true, mintlify: false, readme: false, gitbook: false },
-    { feature: 'AI Chat with codebase', us: true, mintlify: false, readme: false, gitbook: false },
-    { feature: 'Security scanning', us: true, mintlify: false, readme: false, gitbook: false },
-    { feature: 'Code quality metrics', us: true, mintlify: false, readme: false, gitbook: false },
-    { feature: 'API auto-detection', us: true, mintlify: true, readme: true, gitbook: false },
-    { feature: 'Dependency analysis', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'AI Documentation Generation', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Chat with Codebase (RAG)', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Advanced Security Scanning (16+ patterns)', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Performance Profiling & Optimization', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Real-time Collaborative Editing', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Custom AI Model Fine-tuning', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Code Execution Sandbox', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'API Auto-Documentation', us: true, mintlify: true, readme: true, gitbook: false },
+    { feature: 'Advanced Analytics & Code Churn', us: true, mintlify: false, readme: false, gitbook: false },
+    { feature: 'Dependency Analysis & Drift Detection', us: true, mintlify: false, readme: false, gitbook: false },
     { feature: 'Free tier', us: true, mintlify: false, readme: false, gitbook: true },
     { feature: 'Starting price', usVal: 'FREE', mintVal: '$150/mo', readmeVal: '$99/mo', gitVal: '$100/mo' },
   ]
@@ -116,43 +114,48 @@ export default function Home() {
       name: 'Free',
       price: '$0',
       period: 'forever',
-      description: 'For individual developers',
+      description: 'Perfect for individual developers',
       features: [
-        '3 repositories',
-        '5 generations/hour',
+        '4 repositories',
+        '1 documentation generation per day',
         'AI chat with codebase',
-        'Security scanning',
+        'Basic security scanning',
         'Code quality metrics',
-        'API documentation',
+        'API auto-documentation',
+        'GitHub integration',
       ],
     },
     {
       name: 'Pro',
-      price: '$19',
+      price: '$29',
       period: 'month',
-      description: 'For serious developers',
+      description: 'For growing development teams',
       features: [
-        '20 repositories',
+        'Unlimited repositories',
         'Unlimited generations',
-        'Priority processing',
-        'Advanced analytics',
-        'Export to PDF/Markdown',
-        'Email support',
+        'Advanced security scanning (16+ patterns)',
+        'Real-time collaborative editing',
+        'Performance profiling & optimization',
+        'Advanced analytics & code churn',
+        'Priority support',
+        'Export capabilities',
       ],
       popular: true,
     },
     {
-      name: 'Team',
-      price: '$49',
+      name: 'Enterprise',
+      price: '$99',
       period: 'seat/month',
-      description: 'For development teams',
+      description: 'For large organizations',
       features: [
-        'Unlimited repositories',
-        'Team collaboration',
-        'Shared documentation',
-        'Admin dashboard',
-        'Priority support',
+        'Everything in Pro',
+        'Custom AI model fine-tuning',
+        'Code execution sandbox',
+        'Advanced dependency analysis',
+        'Team management & SSO',
+        'Dedicated support manager',
         'Custom integrations',
+        'Compliance reporting',
       ],
     },
   ]
@@ -176,91 +179,221 @@ export default function Home() {
       {/* Hero Section */}
       <Hero />
 
-      {/* Social Proof */}
-      <section className="py-12 bg-card border-y border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-foreground">30s</div>
-              <div className="text-muted-foreground text-sm">Avg generation time</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-foreground">100%</div>
-              <div className="text-muted-foreground text-sm">Code coverage</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-green-400">FREE</div>
-              <div className="text-muted-foreground text-sm">To start</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-github-warning">15+</div>
-              <div className="text-muted-foreground text-sm">Security checks</div>
-            </div>
-          </div>
+      {/* Problem/Solution Section - Notebook Style */}
+      <section className="py-24 bg-gray-900/20 relative overflow-hidden">
+        {/* Notebook background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `repeating-linear-gradient(
+              0deg,
+              rgba(255,255,255,0.1) 0px,
+              rgba(255,255,255,0.1) 1px,
+              transparent 1px,
+              transparent 24px
+            )`
+          }} />
         </div>
-      </section>
 
-      {/* Problem/Solution Section */}
-      <section className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="grid md:grid-cols-2 gap-12 items-center"
+            transition={{ duration: 0.8 }}
+            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl"
           >
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Why Developers <span className="text-red-500">Hate</span> Writing Docs
-              </h2>
-              <div className="space-y-4 text-lg text-muted-foreground">
-                <p className="flex items-start gap-3">
-                  <span className="text-red-500">X</span>
-                  Takes days or weeks to write manually
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="text-red-500">X</span>
-                  Gets outdated the moment code changes
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="text-red-500">X</span>
-                  Boring, repetitive, and nobody wants to do it
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="text-red-500">X</span>
-                  Expensive tools that still require manual work
-                </p>
-              </div>
+            {/* Header */}
+            <div className="text-center mb-12">
+              <motion.h2
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-3xl md:text-4xl font-bold text-white font-poppins mb-4"
+              >
+                Problem vs. Solution
+              </motion.h2>
+              <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto rounded-full"></div>
             </div>
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                How We <span className="text-green-500">Solve</span> It
-              </h2>
-              <div className="space-y-4 text-lg text-muted-foreground">
-                <p className="flex items-start gap-3">
-                  <span className="text-green-500">+</span>
-                  Generate complete docs in 30 seconds
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="text-green-500">+</span>
-                  Auto-sync when you push to GitHub
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="text-green-500">+</span>
-                  AI reads and understands your entire codebase
-                </p>
-                <p className="flex items-start gap-3">
-                  <span className="text-green-500">+</span>
-                  100% FREE to use - no credit card required
-                </p>
-              </div>
+
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+              {/* Problem Side */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-red-400 font-bold text-sm">✗</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-red-400 font-poppins">Manual Documentation</h3>
+                </div>
+
+                <div className="space-y-3">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.4 }}
+                    className="relative pl-6 border-l-2 border-red-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-red-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                    </div>
+                    <p className="text-gray-300 text-base font-poppins leading-relaxed">
+                      Takes days or weeks to write manually, wasting valuable development time
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.5 }}
+                    className="relative pl-6 border-l-2 border-red-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-red-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                    </div>
+                    <p className="text-gray-300 text-base font-poppins leading-relaxed">
+                      Gets outdated the moment code changes, becoming unreliable
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.6 }}
+                    className="relative pl-6 border-l-2 border-red-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-red-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                    </div>
+                    <p className="text-gray-300 text-base font-poppins leading-relaxed">
+                      Expensive tools that still require significant manual work
+                    </p>
+                  </motion.div>
+                </div>
+              </motion.div>
+
+              {/* Big Underline Separator */}
+              <motion.div
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, delay: 0.7 }}
+                className="hidden md:block absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+              >
+                <div className="w-px h-32 bg-gradient-to-b from-transparent via-white/30 to-transparent"></div>
+                <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center absolute -left-4 top-1/2 transform -translate-y-1/2">
+                  <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                </div>
+              </motion.div>
+
+              {/* Solution Side */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-green-400 font-bold text-sm">✓</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-green-400 font-poppins">DocAI Solution</h3>
+                </div>
+
+                <div className="space-y-3">
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.4 }}
+                    className="relative pl-6 border-l-2 border-green-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-green-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    </div>
+                    <p className="text-gray-200 text-base font-poppins leading-relaxed font-medium">
+                      Generate complete documentation in 56 seconds automatically
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.5 }}
+                    className="relative pl-6 border-l-2 border-green-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-green-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    </div>
+                    <p className="text-gray-200 text-base font-poppins leading-relaxed font-medium">
+                      Auto-sync when you push to GitHub - always up-to-date
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.6 }}
+                    className="relative pl-6 border-l-2 border-green-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-green-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    </div>
+                    <p className="text-gray-200 text-base font-poppins leading-relaxed font-medium">
+                      AI understands your entire codebase with 47+ analysis types
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.7 }}
+                    className="relative pl-6 border-l-2 border-blue-500/30"
+                  >
+                    <div className="absolute -left-2 top-0 w-4 h-4 bg-blue-500/20 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    </div>
+                    <p className="text-blue-200 text-base font-poppins leading-relaxed font-medium">
+                      100% FREE to start - no credit card required
+                    </p>
+                  </motion.div>
+                </div>
+              </motion.div>
             </div>
+
+            {/* Mobile Separator */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, delay: 0.8 }}
+              className="md:hidden mt-8 mb-4"
+            >
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+              <div className="flex justify-center mt-2">
+                <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-card">
+      <section id="features" className="py-24 bg-gray-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -269,15 +402,29 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              More Powerful Than <span className="text-foreground">Any Alternative</span>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="inline-block mb-6"
+            >
+              <div className="px-6 py-2 bg-blue-600/10 border border-blue-500/20 rounded-full">
+                <span className="text-blue-400 font-semibold text-sm font-poppins tracking-wide uppercase">
+                  Advanced AI Technology
+                </span>
+              </div>
+            </motion.div>
+
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-poppins leading-tight">
+              Enterprise-Grade <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">AI Features</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Deep code analysis that actually understands your codebase
+            <p className="text-lg text-gray-400 max-w-3xl mx-auto font-poppins leading-relaxed">
+              Revolutionary deep code intelligence that surpasses traditional documentation tools with cutting-edge AI analysis and automation
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <FeatureCard
                 key={index}
@@ -292,36 +439,36 @@ export default function Home() {
       </section>
 
       {/* What Gets Documented */}
-      <section className="py-20 bg-background">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-24 bg-gray-900/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Everything gets <span className="text-blue-400">documented</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-poppins">
+              Complete Code <span className="gradient-text">Analysis Coverage</span>
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Not just functions and classes - everything
+            <p className="text-xl text-gray-300 font-poppins font-medium">
+              Every aspect of your codebase is automatically analyzed and documented
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {[
-              { name: 'API routes', icon: '/' },
-              { name: 'Controllers', icon: 'C' },
-              { name: 'Services', icon: 'S' },
-              { name: 'Models', icon: 'M' },
-              { name: 'Functions', icon: 'fn' },
-              { name: 'Classes', icon: '{}' },
-              { name: 'Components', icon: '<>' },
-              { name: 'Hooks', icon: 'use' },
-              { name: 'Middlewares', icon: 'MW' },
-              { name: 'Utilities', icon: 'util' },
-              { name: 'Types', icon: 'T' },
-              { name: 'Interfaces', icon: 'I' },
+              { name: 'API Routes', icon: '🌐', category: 'Backend' },
+              { name: 'Controllers', icon: '🎛️', category: 'Backend' },
+              { name: 'Services', icon: '⚙️', category: 'Backend' },
+              { name: 'Models', icon: '🗄️', category: 'Data' },
+              { name: 'Functions', icon: '🔧', category: 'Logic' },
+              { name: 'Classes', icon: '🏗️', category: 'Structure' },
+              { name: 'Components', icon: '🧩', category: 'Frontend' },
+              { name: 'Hooks', icon: '🪝', category: 'Frontend' },
+              { name: 'Middleware', icon: '🔀', category: 'Backend' },
+              { name: 'Utilities', icon: '🛠️', category: 'Tools' },
+              { name: 'Types', icon: '🏷️', category: 'Types' },
+              { name: 'Interfaces', icon: '📋', category: 'Types' },
             ].map((item, idx) => (
               <motion.div
                 key={idx}
@@ -329,10 +476,11 @@ export default function Home() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.05 }}
-                className="bg-card border border-border rounded-md p-4 text-center hover:shadow-github transition-all hover-github"
+                className="card-feature p-6 text-center group hover:scale-105 transition-all duration-300"
               >
-                <div className="text-xl font-mono font-semibold text-blue-400 mb-2">{item.icon}</div>
-                <div className="text-sm text-muted-foreground">{item.name}</div>
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <div className="text-lg font-bold text-white font-poppins mb-1">{item.name}</div>
+                <div className="text-sm text-gray-400 font-poppins">{item.category}</div>
               </motion.div>
             ))}
           </div>
@@ -340,73 +488,106 @@ export default function Home() {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-20 bg-card">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-24 bg-gray-900/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Why Choose <span className="text-foreground">Us</span>?
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-poppins">
+              Why Choose <span className="gradient-text">DocAI</span>?
             </h2>
+            <p className="text-lg text-gray-300 font-poppins">See how we compare to traditional documentation tools</p>
           </motion.div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="py-4 px-4 font-semibold">Feature</th>
-                  <th className="py-4 px-4 font-semibold text-green-500">DocAI</th>
-                  <th className="py-4 px-4 font-semibold text-muted-foreground">Mintlify</th>
-                  <th className="py-4 px-4 font-semibold text-muted-foreground">ReadMe</th>
-                  <th className="py-4 px-4 font-semibold text-muted-foreground">GitBook</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisons.map((row, idx) => (
-                  <tr key={idx} className="border-b border-border/50">
-                    <td className="py-3 px-4">{row.feature}</td>
-                    <td className="py-3 px-4">
-                      {row.usVal || (row.us ? <span className="text-green-500 text-xl">+</span> : <span className="text-red-500">-</span>)}
-                    </td>
-                    <td className="py-3 px-4">
-                      {row.mintVal || (row.mintlify ? <span className="text-green-500">+</span> : <span className="text-muted-foreground">-</span>)}
-                    </td>
-                    <td className="py-3 px-4">
-                      {row.readmeVal || (row.readme ? <span className="text-green-500">+</span> : <span className="text-muted-foreground">-</span>)}
-                    </td>
-                    <td className="py-3 px-4">
-                      {row.gitVal || (row.gitbook ? <span className="text-green-500">+</span> : <span className="text-muted-foreground">-</span>)}
-                    </td>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="bg-gray-800/50 rounded-2xl border border-gray-700/50 overflow-hidden backdrop-blur-sm"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-800/80">
+                  <tr>
+                    <th className="py-6 px-6 text-left font-bold text-white font-poppins text-lg">Feature</th>
+                    <th className="py-6 px-6 text-center font-bold text-blue-400 font-poppins text-lg">DocAI</th>
+                    <th className="py-6 px-6 text-center font-semibold text-gray-400 font-poppins">Mintlify</th>
+                    <th className="py-6 px-6 text-center font-semibold text-gray-400 font-poppins">ReadMe</th>
+                    <th className="py-6 px-6 text-center font-semibold text-gray-400 font-poppins">GitBook</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {comparisons.map((row, idx) => (
+                    <tr key={idx} className="border-t border-gray-700/30 hover:bg-gray-800/30 transition-colors">
+                      <td className="py-5 px-6 text-gray-200 font-poppins font-medium">{row.feature}</td>
+                      <td className="py-5 px-6 text-center">
+                        {row.usVal ? (
+                          <span className="text-green-400 font-bold font-poppins text-lg">{row.usVal}</span>
+                        ) : (
+                          <span className={`text-2xl ${row.us ? 'text-green-400' : 'text-red-400'}`}>
+                            {row.us ? '✓' : '✗'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-5 px-6 text-center">
+                        {row.mintVal ? (
+                          <span className="text-gray-400 font-poppins">{row.mintVal}</span>
+                        ) : (
+                          <span className={`text-lg ${row.mintlify ? 'text-green-400' : 'text-gray-500'}`}>
+                            {row.mintlify ? '✓' : '✗'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-5 px-6 text-center">
+                        {row.readmeVal ? (
+                          <span className="text-gray-400 font-poppins">{row.readmeVal}</span>
+                        ) : (
+                          <span className={`text-lg ${row.readme ? 'text-green-400' : 'text-gray-500'}`}>
+                            {row.readme ? '✓' : '✗'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-5 px-6 text-center">
+                        {row.gitVal ? (
+                          <span className="text-gray-400 font-poppins">{row.gitVal}</span>
+                        ) : (
+                          <span className={`text-lg ${row.gitbook ? 'text-green-400' : 'text-gray-500'}`}>
+                            {row.gitbook ? '✓' : '✗'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-background">
+      <section id="pricing" className="py-24 bg-gray-900/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Start <span className="text-foreground">Free</span>, Scale When Ready
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 font-poppins">
+              Start <span className="text-green-400">Free</span>, Scale When Ready
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              No credit card required. Upgrade only when you need more.
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto font-poppins font-medium">
+              No credit card required. Upgrade only when your team needs enterprise features.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {pricingPlans.map((plan, index) => (
               <PricingCard
                 key={index}
@@ -424,42 +605,115 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-card">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="py-24 bg-gray-900/50">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-card border border-border rounded-md p-8 shadow-github"
+            className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-3xl p-12 shadow-2xl"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Document your code in <span className="text-green-400">30 seconds</span>
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Join developers who stopped wasting time on documentation
-            </p>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <a
-                href="/api/github/connect"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-base font-medium shadow-lg transition-all"
+            <div className="mb-8">
+              <motion.h2
+                className="text-4xl md:text-5xl font-bold text-white mb-6 font-poppins leading-tight"
+                animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+                transition={{ duration: 5, repeat: Infinity }}
+                style={{
+                  background: 'linear-gradient(45deg, #ffffff, #3b82f6, #8b5cf6, #10b981, #ffffff)',
+                  backgroundSize: '300% 300%',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
               >
-                Get started free
-                <Sparkles className="ml-2 w-4 h-4" />
-              </a>
+                Transform Your <span className="text-blue-400">Development Workflow</span>
+              </motion.h2>
+              <p className="text-xl text-gray-300 font-poppins font-medium leading-relaxed">
+                Join thousands of developers who have automated their documentation process with enterprise-grade AI technology
+              </p>
+            </div>
+
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="mb-6"
+            >
+              <motion.a
+                href="/api/github/connect"
+                className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all duration-300 group"
+                whileHover={{ scale: 1.02 }}
+              >
+                Start Free Today
+                <Sparkles className="ml-3 w-5 h-5 group-hover:rotate-12 transition-transform" />
+              </motion.a>
             </motion.div>
-            <p className="text-sm text-muted-foreground mt-4">
-              No credit card required - 3 repos free forever
-            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-400 font-poppins">
+              {[
+                { color: "bg-green-400", text: "No credit card required" },
+                { color: "bg-blue-400", text: "Full access to all features" },
+                { color: "bg-purple-400", text: "Cancel anytime" }
+              ].map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-center gap-2 group"
+                >
+                  <div className={`w-2 h-2 ${item.color} rounded-full group-hover:animate-pulse`}></div>
+                  <span className="group-hover:text-gray-300 transition-colors duration-300">{item.text}</span>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-background border-t border-border py-12">
+      <footer className="bg-gray-900/80 border-t border-gray-700/50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-muted-foreground">
-            <p>&copy; 2024 DocAI. All rights reserved.</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            <div className="md:col-span-2">
+              <div className="flex items-center mb-4">
+                <span className="text-2xl font-bold text-white font-poppins">DocAI</span>
+              </div>
+              <p className="text-gray-400 font-poppins leading-relaxed max-w-md">
+                The most powerful AI documentation platform for modern development teams.
+                Transform your codebase into comprehensive, accurate documentation instantly.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-white font-bold font-poppins mb-4">Product</h3>
+              <ul className="space-y-3">
+                <li><a href="#features" className="text-gray-400 hover:text-white transition-colors font-poppins">Features</a></li>
+                <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors font-poppins">Pricing</a></li>
+                <li><a href="/demo" className="text-gray-400 hover:text-white transition-colors font-poppins">Demo</a></li>
+                <li><a href="/api/github/connect" className="text-gray-400 hover:text-white transition-colors font-poppins">Get Started</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-white font-bold font-poppins mb-4">Company</h3>
+              <ul className="space-y-3">
+                <li><span className="text-gray-400 font-poppins">About</span></li>
+                <li><span className="text-gray-400 font-poppins">Blog</span></li>
+                <li><span className="text-gray-400 font-poppins">Careers</span></li>
+                <li><span className="text-gray-400 font-poppins">Contact</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-700/50 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-400 font-poppins text-sm">
+              &copy; 2024 DocAI. All rights reserved.
+            </p>
+            <div className="flex items-center space-x-6 mt-4 md:mt-0">
+              <span className="text-gray-400 font-poppins text-sm">Made with ❤️ for developers</span>
+            </div>
           </div>
         </div>
       </footer>

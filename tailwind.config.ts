@@ -63,6 +63,14 @@ const config: Config = {
         'slide-down': 'slideDown 0.5s ease-out',
         'scale-in': 'scaleIn 0.3s ease-out',
         'gradient': 'gradient 8s linear infinite',
+        'gradient-x': 'gradient-x 15s ease infinite',
+        'gradient-y': 'gradient-y 15s ease infinite',
+        'gradient-xy': 'gradient-xy 15s ease infinite',
+        'aurora': 'aurora 60s ease-in-out infinite',
+        'meteor': 'meteor 5s linear infinite',
+        'shooting-star': 'shooting-star 3s ease-out infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
       },
       keyframes: {
         fadeIn: {
@@ -91,11 +99,112 @@ const config: Config = {
             'background-position': 'right center',
           },
         },
+        'gradient-x': {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'left center',
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center',
+          },
+        },
+        'gradient-y': {
+          '0%, 100%': {
+            'background-size': '200% 200%',
+            'background-position': 'top center',
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'bottom center',
+          },
+        },
+        'gradient-xy': {
+          '0%, 100%': {
+            'background-size': '400% 400%',
+            'background-position': 'left center',
+          },
+          '50%': {
+            'background-size': '200% 200%',
+            'background-position': 'right center',
+          },
+        },
+        aurora: {
+          '0%': {
+            backgroundPosition: '50% 50%, 50% 50%',
+          },
+          '50%': {
+            backgroundPosition: '350% 50%, 350% 50%',
+          },
+          '100%': {
+            backgroundPosition: '50% 50%, 50% 50%',
+          },
+        },
+        meteor: {
+          '0%': {
+            transform: 'rotate(215deg) translateX(0px)',
+            opacity: '1',
+          },
+          '70%': {
+            opacity: '1',
+          },
+          '100%': {
+            transform: 'rotate(215deg) translateX(-500px)',
+            opacity: '0',
+          },
+        },
+        'shooting-star': {
+          '0%': {
+            transform: 'translateX(-100%) translateY(-100%)',
+            opacity: '0',
+          },
+          '50%': {
+            opacity: '1',
+          },
+          '100%': {
+            transform: 'translateX(100%) translateY(100%)',
+            opacity: '0',
+          },
+        },
+        float: {
+          '0%, 100%': {
+            transform: 'translateY(0px)',
+          },
+          '50%': {
+            transform: 'translateY(-10px)',
+          },
+        },
+        glow: {
+          '0%': {
+            boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
+          },
+          '100%': {
+            boxShadow: '0 0 30px rgba(59, 130, 246, 0.8)',
+          },
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
         'gradient-pink-black': 'linear-gradient(to right, #ec4899, #111827)',
+        'gradient-to-r': 'linear-gradient(to right, var(--tw-gradient-stops))',
+        'gradient-to-l': 'linear-gradient(to left, var(--tw-gradient-stops))',
+        'gradient-to-t': 'linear-gradient(to top, var(--tw-gradient-stops))',
+        'gradient-to-b': 'linear-gradient(to bottom, var(--tw-gradient-stops))',
+        'gradient-to-br': 'linear-gradient(to bottom right, var(--tw-gradient-stops))',
+        'gradient-to-bl': 'linear-gradient(to bottom left, var(--tw-gradient-stops))',
+        'gradient-to-tr': 'linear-gradient(to top right, var(--tw-gradient-stops))',
+        'gradient-to-tl': 'linear-gradient(to top left, var(--tw-gradient-stops))',
+        'aurora': 'radial-gradient(ellipse at top, rgba(139, 92, 246, 0.3), transparent), radial-gradient(ellipse at bottom, rgba(59, 130, 246, 0.3), transparent)',
+        'dots-pattern': 'radial-gradient(circle, #cbd5e1 1px, transparent 1px)',
+      },
+      boxShadow: {
+        'glow': '0 0 20px rgba(59, 130, 246, 0.5)',
+        'glow-lg': '0 0 40px rgba(59, 130, 246, 0.5)',
+        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.3)',
+        'glow-purple': '0 0 20px rgba(139, 92, 246, 0.3)',
+        'glow-green': '0 0 20px rgba(34, 197, 94, 0.3)',
+        'inner-glow': 'inset 0 0 20px rgba(59, 130, 246, 0.1)',
       },
     },
   },

@@ -108,7 +108,7 @@ export function CodeVisualizer({ analysis, architecture, onNodeClick }: CodeVisu
                   { label: 'Classes', value: stats.classes, color: 'text-purple-400' },
                   { label: 'Components', value: stats.components, color: 'text-pink-400' },
                   { label: 'API Routes', value: stats.apis, color: 'text-cyan-400' },
-                  { label: 'Complexity', value: stats.complexity.toFixed(1), color: 'text-amber-400' }
+                  { label: 'Complexity', value: stats.complexity.toFixed(1), color: 'text-blue-400' }
                 ].map((stat, idx) => (
                   <div key={idx} className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className={`text-2xl font-bold ${stat.color}`}>
@@ -125,8 +125,8 @@ export function CodeVisualizer({ analysis, architecture, onNodeClick }: CodeVisu
                 <div className="flex items-end gap-2 h-20">
                   {[
                     { label: 'Low', value: 60, color: 'bg-green-500' },
-                    { label: 'Medium', value: 30, color: 'bg-yellow-500' },
-                    { label: 'High', value: 8, color: 'bg-orange-500' },
+                    { label: 'Medium', value: 30, color: 'bg-blue-500' },
+                    { label: 'High', value: 8, color: 'bg-indigo-500' },
                     { label: 'Critical', value: 2, color: 'bg-red-500' }
                   ].map((level, idx) => (
                     <div key={idx} className="flex-1 flex flex-col items-center">
