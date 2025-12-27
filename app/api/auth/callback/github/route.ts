@@ -133,10 +133,27 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('GitHub authentication error', {
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      clientId: clientId ? 'SET' : 'MISSING',
+      clientSecret: clientSecret ? 'SET' : 'MISSING',
+      redirectUri,
+      code: code ? 'PRESENT' : 'MISSING',
     })
 
+    // Provide more specific error messages
+    let errorType = 'auth_failed'
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        errorType = 'network_error'
+      } else if (error.message.includes('invalid_client')) {
+        errorType = 'invalid_client'
+      } else if (error.message.includes('redirect_uri_mismatch')) {
+        errorType = 'redirect_uri_mismatch'
+      }
+    }
+
     return NextResponse.redirect(
-      new URL('/?error=auth_failed', request.url)
+      new URL(`/?error=${errorType}`, request.url)
     )
   }
 }

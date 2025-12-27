@@ -41,22 +41,31 @@ export default function Home() {
           // Handle different error types
           switch (error) {
             case 'auth_failed':
-              setAuthError('Authentication failed. Please try again.')
+              setAuthError('Authentication failed. Please check your GitHub OAuth configuration.')
               break
             case 'access_denied':
-              setAuthError('GitHub access was denied. Please try again.')
+              setAuthError('GitHub access was denied. Please grant the required permissions.')
               break
             case 'oauth_not_configured':
-              setAuthError('GitHub OAuth is not configured. Please contact support.')
+              setAuthError('GitHub OAuth is not configured. Please set up environment variables.')
               break
             case 'no_code':
-              setAuthError('Authorization code missing. Please try again.')
+              setAuthError('Authorization code missing. Please try the login process again.')
               break
             case 'token_exchange_failed':
-              setAuthError('Failed to exchange authorization token. Please try again.')
+              setAuthError('Failed to exchange authorization token. Please check your GitHub app settings.')
               break
             case 'no_access_token':
-              setAuthError('No access token received. Please try again.')
+              setAuthError('No access token received from GitHub. Please try again.')
+              break
+            case 'network_error':
+              setAuthError('Network error during authentication. Please check your connection.')
+              break
+            case 'invalid_client':
+              setAuthError('Invalid GitHub client credentials. Please check your OAuth app configuration.')
+              break
+            case 'redirect_uri_mismatch':
+              setAuthError('Redirect URI mismatch. Please update your GitHub app redirect URI to match your deployment URL.')
               break
             default:
               setAuthError('An authentication error occurred. Please try again.')
