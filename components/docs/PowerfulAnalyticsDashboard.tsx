@@ -413,9 +413,9 @@ export function PowerfulAnalyticsDashboard({ repoId }: PowerfulAnalyticsDashboar
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-white">Code Quality</h3>
-                <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${gradeColors[analytics.quality?.grade || getGradeFromScore(analytics.quality?.score || 80)]} flex items-center justify-center text-white font-bold text-xl`}>
-                  {analytics.quality?.grade || getGradeFromScore(analytics.quality?.score || 80)}
-                </span>
+                  <span className={`w-12 h-12 rounded-full bg-gradient-to-br ${gradeColors[analytics.quality?.grade || 'C']} flex items-center justify-center text-white font-bold text-xl`}>
+                    {analytics.quality?.grade || 'C'}
+                  </span>
               </div>
               <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden mb-4">
                 <motion.div
@@ -427,7 +427,7 @@ export function PowerfulAnalyticsDashboard({ repoId }: PowerfulAnalyticsDashboar
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Score</span>
-                <span className="text-white font-semibold">{analytics.quality?.score || 80}/100</span>
+                <span className="text-white font-semibold">{analytics.quality?.score || 70}/100</span>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-800">
                 <div className="grid grid-cols-3 gap-3 text-center">
