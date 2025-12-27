@@ -10,7 +10,7 @@
 
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
-import { getRAGEngine } from '@/lib/ai/rag/engine'
+import { getRAGEngine } from '@/lib/ai/rag-engine'
 import { getAIProviderWithFallback } from '@/lib/ai/providers/factory'
 import { createApiHandler, requireUser, getRequestBody } from '@/lib/utils/api-wrapper'
 import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
@@ -47,28 +47,30 @@ export const POST = createApiHandler(
 
     // Initialize RAG engine
     const rag = getRAGEngine()
-    const ragAvailable = await rag.initialize()
+    const ragAvailable = rag.isAvailable()
 
     let answer: string
     let sources: any[] = []
-    let searchResults: any[] = []
 
     if (ragAvailable) {
-      // Search for relevant code chunks
-      searchResults = await rag.search(message, repoId, 8)
-      
-      sources = searchResults.map(r => ({
-        name: r.payload.name,
-        type: r.payload.type,
-        filePath: r.payload.filePath,
-        lineStart: r.payload.lineStart,
-        lineEnd: r.payload.lineEnd,
-        score: Math.round(r.score * 100),
-        preview: r.payload.content?.substring(0, 200) + '...',
-      }))
+      // Use RAG's comprehensive answerQuestion method
+      const ragContext = {
+        query: message,
+        repoId,
+        repoName: repo.fullName,
+        relevantCode: [],
+        conversationHistory: (history || []).map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+      }
 
-      // Generate answer with context
-      answer = await rag.answerQuestion(message, repoId, history || [])
+      const ragResponse = await rag.answerQuestion(ragContext)
+      answer = ragResponse.answer
+      sources = ragResponse.sources.map(s => ({
+        name: s.name,
+        type: s.type,
+        filePath: s.filePath,
+        score: s.relevance,
+        preview: `Relevance: ${s.relevance}%`,
+      }))
     } else {
       // Fallback: Use docs from database
       const docs = await prisma.doc.findMany({

@@ -9,7 +9,6 @@
  * - Scalability analysis
  */
 
-import { getRAGEngine } from '../ai/rag/engine'
 
 export interface PerformanceProfile {
   executionTime: number
@@ -74,7 +73,6 @@ export interface PerformanceProjection {
 }
 
 export class PerformanceProfiler {
-  private ragEngine = getRAGEngine()
 
   async analyzePerformance(
     codeAnalysis: any,

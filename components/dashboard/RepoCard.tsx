@@ -49,9 +49,13 @@ export function RepoCard({ repo }: RepoCardProps) {
 
       const data = await response.json()
 
-      // Reload page to show updated status
+      // Trigger parent component refresh instead of full reload
       if (data.success) {
-        window.location.reload()
+        // Dispatch custom event for parent to refresh
+        window.dispatchEvent(new CustomEvent('repo-connected', {
+          detail: { repoId: repo.id }
+        }))
+        setConnecting(false)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect repository')

@@ -11,7 +11,7 @@
  */
 
 import { getAIProviderWithFallback } from './providers/factory'
-import { getRAGEngine } from './rag/engine'
+import { getRAGEngine } from './rag-engine'
 
 export interface CodeCompletionRequest {
   code: string
@@ -117,14 +117,14 @@ TYPE: [function|method|variable|class|import|statement]`
     try {
       const ai = await this.aiPromise
       // Get similar code patterns from RAG
-      const similarCode = await this.ragEngine.search(
+      const similarCode = await this.ragEngine.searchCode(
         `refactoring patterns ${code.substring(0, 200)}`,
         repoId,
         3
       )
 
       const context = similarCode
-        .map(s => s.payload.content?.substring(0, 300))
+        .map(s => s.content?.substring(0, 300))
         .join('\n\n')
 
       const prompt = `Analyze this code for refactoring opportunities:
@@ -174,14 +174,14 @@ Return as structured suggestions.`
     try {
       const ai = await this.aiPromise
       // Get related code from RAG
-      const related = await this.ragEngine.search(
+      const related = await this.ragEngine.searchCode(
         `explain ${code.substring(0, 100)}`,
         repoId,
         3
       )
 
       const context = related
-        .map(s => `Related: ${s.payload.content?.substring(0, 200)}`)
+        .map(s => `Related: ${s.content?.substring(0, 200)}`)
         .join('\n')
 
       const prompt = `Explain this code in detail:
@@ -288,7 +288,7 @@ Return as structured list.`
     // Get similar code patterns from RAG if repoId provided
     if (request.context?.repoId) {
       try {
-        const similar = await this.ragEngine.search(
+        const similar = await this.ragEngine.searchCode(
           request.code.substring(Math.max(0, request.cursorPosition - 50), request.cursorPosition),
           request.context.repoId,
           2
@@ -297,7 +297,7 @@ Return as structured list.`
         if (similar.length > 0) {
           context += '\nSimilar patterns in codebase:\n'
           similar.forEach(s => {
-            context += `- ${s.payload.content?.substring(0, 100)}...\n`
+            context += `- ${s.content?.substring(0, 100)}...\n`
           })
         }
       } catch (error) {

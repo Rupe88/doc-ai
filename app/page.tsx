@@ -39,7 +39,7 @@ export default function Home() {
 
         if (data.success && data.data?.user) {
           // User is logged in, redirect immediately without flash
-          window.location.href = '/dashboard'
+          router.push('/dashboard')
           return
         }
       } catch (error) {

@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "upgrade-testing": "npx tsx scripts/temp-upgrade-for-testing.ts",
     "downgrade-testing": "npx tsx scripts/temp-upgrade-for-testing.ts down",
+    "test-exact-code": "npx tsx scripts/test-exact-code.ts",
     "postinstall": "prisma generate"
   },
   "engines": {

@@ -10,7 +10,6 @@
  * - Risk assessment and predictions
  */
 
-import { getRAGEngine } from '../ai/rag/engine'
 
 export interface CodeChurnMetrics {
   totalCommits: number
@@ -77,7 +76,6 @@ export interface CodeVelocityMetrics {
 }
 
 export class AdvancedAnalyticsEngine {
-  private ragEngine = getRAGEngine()
 
   async analyzeCodeChurn(
     repoId: string,

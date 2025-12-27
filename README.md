@@ -1,17 +1,24 @@
 # DocAI - Enterprise-Grade AI Documentation Platform
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Next.js-14.0-black" alt="Next.js"/>
-  <img src="https://img.shields.io/badge/TypeScript-5.3-blue" alt="TypeScript"/>
-  <img src="https://img.shields.io/badge/LangChain-0.1-green" alt="LangChain"/>
-  <img src="https://img.shields.io/badge/Qdrant-Vector_DB-purple" alt="Qdrant"/>
-  <img src="https://img.shields.io/badge/Prisma-ORM-blue" alt="Prisma"/>
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-cyan" alt="Tailwind CSS"/>
+  <div style="display: inline-flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #3B82F6, #1E40AF); padding: 16px 24px; border-radius: 12px; margin-bottom: 20px;">
+    <div style="width: 32px; height: 32px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1E40AF;">AI</div>
+    <span style="font-size: 24px; font-weight: bold; color: white;">DocAI</span>
+  </div>
 </div>
 
 <div align="center">
   <h3>Transform Your Development Workflow with AI-Powered Documentation</h3>
   <p>DocAI reads every file in your codebase and generates comprehensive documentation in under a minute using advanced AI and RAG technology.</p>
+
+  <div style="display: flex; gap: 8px; justify-content: center; margin-top: 16px;">
+    <img src="https://img.shields.io/badge/Next.js-14.0-black" alt="Next.js"/>
+    <img src="https://img.shields.io/badge/TypeScript-5.3-blue" alt="TypeScript"/>
+    <img src="https://img.shields.io/badge/LangChain-0.1-green" alt="LangChain"/>
+    <img src="https://img.shields.io/badge/Qdrant-Vector_DB-purple" alt="Qdrant"/>
+    <img src="https://img.shields.io/badge/Prisma-ORM-blue" alt="Prisma"/>
+    <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-cyan" alt="Tailwind CSS"/>
+  </div>
 </div>
 
 ## ✨ Features

@@ -1,4 +1,4 @@
-import { getRAGEngine, RAGEngine } from './rag-engine'
+import { getRAGEngine, RAGEngine, RAGContext } from './rag-engine'
 import { prisma } from '@/lib/db/prisma'
 
 export interface ChatMessage {
@@ -40,13 +40,15 @@ export class ChatService {
       content: m.content,
     }))
 
-    const { answer, sources } = await this.ragEngine.answerQuestion({
+    const context: RAGContext = {
       query: message,
       repoId,
       repoName,
       relevantCode: [],
       conversationHistory,
-    })
+    }
+
+    const { answer, sources } = await this.ragEngine.answerQuestion(context)
 
     const updatedMessages = [
       ...messages,

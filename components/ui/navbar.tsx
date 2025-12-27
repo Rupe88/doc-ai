@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Github } from 'lucide-react'
+import { Menu, X, Github, Loader2 } from 'lucide-react'
 import { Button } from './button'
+import { useGitHubConnect } from '@/lib/hooks/use-github-connect'
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { connect, isConnecting } = useGitHubConnect()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,7 +34,12 @@ export function Navbar() {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
-            <span className="text-xl font-bold text-white font-poppins">DocAI</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">AI</span>
+              </div>
+              <span className="text-xl font-bold text-white font-poppins">DocAI</span>
+            </div>
           </Link>
 
           {/* Desktop Menu */}
@@ -55,18 +62,27 @@ export function Navbar() {
             >
               Pricing
             </Link>
-            <Link
-              href="/api/github/connect"
-              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-2 text-sm font-medium font-poppins px-3 py-2 rounded-lg hover:bg-blue-600/10"
+            <button
+              onClick={connect}
+              disabled={isConnecting}
+              className="text-gray-300 hover:text-white transition-colors flex items-center space-x-2 text-sm font-medium font-poppins px-3 py-2 rounded-lg hover:bg-blue-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Github className="w-4 h-4" />
               <span>Sign in</span>
-            </Link>
+            </button>
             <Button
-              asChild
-              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 font-poppins font-semibold"
+              onClick={connect}
+              disabled={isConnecting}
+              className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg shadow-brand-600/25 hover:shadow-brand-600/40 font-poppins font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Link href="/api/github/connect">Get started</Link>
+              {isConnecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                'Get started'
+              )}
             </Button>
           </div>
 
@@ -111,20 +127,32 @@ export function Navbar() {
               >
                 Pricing
               </Link>
-              <Link
-                href="/api/github/connect"
-                className="block text-gray-300 hover:text-white transition-colors font-medium font-poppins px-4 py-3 rounded-lg hover:bg-blue-600/10"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  connect()
+                }}
+                disabled={isConnecting}
+                className="block text-gray-300 hover:text-white transition-colors font-medium font-poppins px-4 py-3 rounded-lg hover:bg-blue-600/10 disabled:opacity-50 disabled:cursor-not-allowed w-full text-left"
               >
                 Login
-              </Link>
+              </button>
               <Button
-                asChild
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-poppins font-semibold shadow-lg shadow-blue-600/25"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  connect()
+                }}
+                disabled={isConnecting}
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white font-poppins font-semibold shadow-lg shadow-brand-600/25 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Link href="/api/github/connect" onClick={() => setMobileMenuOpen(false)}>
-                  Get Started
-                </Link>
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  'Get Started'
+                )}
               </Button>
             </div>
           </motion.div>

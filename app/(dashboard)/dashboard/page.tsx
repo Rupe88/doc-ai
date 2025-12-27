@@ -23,6 +23,14 @@ export default function DashboardPage() {
     if (isAuthenticated) {
       fetchRepos()
     }
+
+    // Listen for repo connection events
+    const handleRepoConnected = () => {
+      fetchRepos()
+    }
+
+    window.addEventListener('repo-connected', handleRepoConnected)
+    return () => window.removeEventListener('repo-connected', handleRepoConnected)
   }, [authLoading, isAuthenticated])
 
   const fetchRepos = async () => {
@@ -90,7 +98,7 @@ export default function DashboardPage() {
               </div>
               <Button
                 asChild
-                className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
+                className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg"
               >
                 <a href="/api/github/connect">
                   <Plus className="w-4 h-4 mr-2" />
@@ -181,7 +189,7 @@ export default function DashboardPage() {
             </p>
             <Button
               asChild
-              className="bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
+              className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg"
             >
               <a href="/api/github/connect">
                 <Plus className="w-4 h-4 mr-2" />

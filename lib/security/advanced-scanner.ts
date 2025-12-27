@@ -9,7 +9,6 @@
  * - Risk assessment and prioritization
  */
 
-import { getRAGEngine } from '../ai/rag/engine'
 import { performEnhancedSecurityScan } from '../ai/enhanced-security-scanner'
 
 export interface SASTResult {
@@ -143,7 +142,6 @@ export interface ComplianceReport {
 }
 
 export class AdvancedSecurityScanner {
-  private ragEngine = getRAGEngine()
 
   async performCompleteSecurityAudit(
     repoId: string,

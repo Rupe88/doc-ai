@@ -10,6 +10,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Professional DocAI Color Palette
+        brand: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6', // Primary blue
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af', // Dark blue
+          900: '#1e3a8a',
+        },
+        cyan: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9', // Accent cyan
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+        },
+        neutral: {
+          50: '#fafafa',
+          100: '#f5f5f5',
+          200: '#e5e5e5',
+          300: '#d4d4d4',
+          400: '#a3a3a3',
+          500: '#737373',
+          600: '#525252',
+          700: '#404040',
+          800: '#262626', // Main background
+          900: '#171717',
+        },
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444',
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {

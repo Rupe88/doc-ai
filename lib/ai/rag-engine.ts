@@ -127,6 +127,14 @@ export class RAGEngine {
    * Answer a question about the codebase using RAG
    */
   async answerQuestion(context: RAGContext): Promise<RAGResponse> {
+    // Check if user is asking for specific code
+    if (this.isCodeRequest(context.query)) {
+      const exactCode = await this.handleCodeRequest(context.query, context.repoId)
+      if (exactCode) {
+        return exactCode
+      }
+    }
+
     // Search for relevant code
     const results = await this.vectorStore.search(context.query, context.repoId, 8)
 
@@ -161,8 +169,16 @@ ${context.query}
 1. Answer the question based on the code context above
 2. Be specific and reference the actual code/files
 3. If showing code, use proper syntax highlighting
-4. Explain your reasoning
-5. If the code doesn't answer the question, say so honestly
+4. If the user asks for specific code (like "show me the login function" or "what does the auth code look like"), provide the exact code with line numbers from the repository
+5. When providing code, format it as:
+   **File:** \`path/to/file.ts\`
+   **Lines:** 123-145
+   \`\`\`language
+   123| exact code from repository
+   124| with line numbers
+   \`\`\`
+6. Explain your reasoning
+7. If the code doesn't answer the question, say so honestly
 
 Answer:`
 
@@ -181,10 +197,154 @@ Answer:`
   }
 
   /**
+   * Handle requests for specific code with exact snippets
+   */
+  private async handleCodeRequest(query: string, repoId: string): Promise<RAGResponse | null> {
+    // Try to extract function/class name from the query
+    const patterns = [
+      /show me (?:the )?(?:code for |implementation of )?["']?([\w\d_]+)["']?/i,
+      /what does (?:the )?["']?([\w\d_]+)["']? (?:function|class|method|component)(?: do)?/i,
+      /give me (?:the )?(?:code for |implementation of )?["']?([\w\d_]+)["']?/i,
+      /(?:find|get) (?:the )?["']?([\w\d_]+)["']? (?:function|class|method|component)/i,
+      /code for ["']?([\w\d_]+)["']?/i,
+      /(?:the )?["']?([\w\d_]+)["']? (?:function|class|method|component)/i,
+      /([\w\d_]+) function/i,
+      /([\w\d_]+) class/i,
+      /([\w\d_]+) component/i,
+    ]
+
+    let targetName = null
+    for (const pattern of patterns) {
+      const match = query.match(pattern)
+      if (match && match[1]) {
+        targetName = match[1]
+        break
+      }
+    }
+
+    if (!targetName) return null
+
+    // Try different types
+    const types = ['function', 'class', 'component', 'api']
+    for (const type of types) {
+      const exactCode = await this.getExactCode(targetName, type, repoId)
+      if (exactCode) {
+        // Format code with line numbers
+        const lines = exactCode.code.split('\n')
+        const numberedLines = lines.map((line, index) =>
+          `${(exactCode.lineStart + index).toString().padStart(4, ' ')}| ${line}`
+        ).join('\n')
+
+        const answer = `Here's the exact code for \`${targetName}\`:
+
+**File:** \`${exactCode.filePath}\`
+**Lines:** ${exactCode.lineStart}-${exactCode.lineEnd}
+**Type:** ${type}
+
+\`\`\`${this.getLanguageFromFile(exactCode.filePath)}
+${numberedLines}
+\`\`\`
+
+This is the complete implementation from your codebase.`
+
+        return {
+          answer,
+          sources: [{
+            type,
+            name: targetName,
+            filePath: exactCode.filePath,
+            relevance: 100,
+          }],
+        }
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Get language for syntax highlighting based on file extension
+   */
+  private getLanguageFromFile(filePath: string): string {
+    const ext = filePath.split('.').pop()?.toLowerCase()
+    switch (ext) {
+      case 'ts': return 'typescript'
+      case 'tsx': return 'typescript'
+      case 'js': return 'javascript'
+      case 'jsx': return 'javascript'
+      case 'py': return 'python'
+      case 'java': return 'java'
+      case 'cpp': case 'cc': case 'cxx': return 'cpp'
+      case 'c': return 'c'
+      case 'go': return 'go'
+      case 'rs': return 'rust'
+      case 'php': return 'php'
+      case 'rb': return 'ruby'
+      case 'swift': return 'swift'
+      case 'kt': return 'kotlin'
+      case 'scala': return 'scala'
+      default: return ''
+    }
+  }
+
+  /**
    * Search for code semantically
    */
   async searchCode(query: string, repoId: string, limit: number = 10): Promise<SearchResult[]> {
     return this.vectorStore.search(query, repoId, limit)
+  }
+
+  /**
+   * Get exact code with line numbers for a specific function/class
+   */
+  async getExactCode(name: string, type: string, repoId: string): Promise<{ code: string; filePath: string; lineStart: number; lineEnd: number } | null> {
+    // Search for exact matches
+    const results = await this.vectorStore.search(`"${name}" ${type}`, repoId, 5)
+
+    // Find the best match
+    for (const result of results) {
+      if (result.metadata.name === name && result.metadata.type === type) {
+        // Extract the full code from the stored content
+        const content = result.content
+        const codeMatch = content.match(/Full Code:\n([\s\S]*)$/)
+        if (codeMatch) {
+          return {
+            code: codeMatch[1].trim(),
+            filePath: result.metadata.filePath || 'Unknown',
+            lineStart: result.metadata.lineStart || 0,
+            lineEnd: result.metadata.lineEnd || 0,
+          }
+        }
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Detect if user is asking for specific code
+   */
+  private isCodeRequest(query: string): boolean {
+    const codeKeywords = [
+      'show me', 'give me', 'what does', 'what is the',
+      'code for', 'implementation of', 'definition of',
+      'how does', 'where is', 'find the', 'get the',
+      'source code', 'function code', 'class code',
+      'let me see', 'can you show', 'display the',
+      'print the', 'output the', 'the code of',
+      'exact code', 'full code', 'complete code',
+      'what\'s the', 'what is', 'how is', 'let me see the'
+    ]
+
+    const lowerQuery = query.toLowerCase()
+
+    // Check for code keywords
+    const hasCodeKeyword = codeKeywords.some(keyword => lowerQuery.includes(keyword))
+
+    // Also check for specific patterns like "auth function" or "login class"
+    const hasCodePattern = /\b\w+\s+(function|class|component|method|service)\b/i.test(query)
+
+    return hasCodeKeyword || hasCodePattern
   }
 
   // Build context strings for different code types
@@ -192,54 +352,62 @@ Answer:`
     const params = func.parameters?.map((p: any) => `${p.name}: ${p.type || 'any'}`).join(', ') || ''
     return `Function: ${func.name}
 File: ${func.filePath}
+Lines: ${func.lineStart}-${func.lineEnd}
 Signature: ${func.isAsync ? 'async ' : ''}function ${func.name}(${params}): ${func.returnType || 'void'}
 Exported: ${func.isExported}
 Complexity: ${func.complexity}
 
-Code:
-${func.code?.substring(0, 3000) || 'N/A'}`
+Full Code:
+${func.code || 'N/A'}`
   }
 
   private buildClassContext(cls: any): string {
     const methods = cls.methods?.map((m: any) => m.name).join(', ') || ''
     return `Class: ${cls.name}
 File: ${cls.filePath}
+Lines: ${cls.lineStart}-${cls.lineEnd}
 Extends: ${cls.extends || 'None'}
 Implements: ${cls.implements?.join(', ') || 'None'}
 Methods: ${methods}
 
-Code:
-${cls.code?.substring(0, 3000) || 'N/A'}`
+Full Code:
+${cls.code || 'N/A'}`
   }
 
   private buildAPIContext(api: any): string {
     return `API Endpoint: ${api.method} ${api.path}
 File: ${api.filePath}
+Lines: ${api.lineStart}-${api.lineEnd}
 Protected: ${api.isProtected}
 Parameters: ${api.parameters?.map((p: any) => p.name).join(', ') || 'None'}
 
-Code:
-${api.code?.substring(0, 3000) || 'N/A'}`
+Full Code:
+${api.code || 'N/A'}`
   }
 
   private buildComponentContext(comp: any): string {
     const props = comp.props?.map((p: any) => p.name).join(', ') || ''
     return `React Component: ${comp.name}
 File: ${comp.filePath}
+Lines: ${comp.lineStart}-${comp.lineEnd}
 Client Component: ${comp.isClientComponent}
 Props: ${props}
 Hooks Used: ${comp.hooks?.join(', ') || 'None'}
 
-Code:
-${comp.code?.substring(0, 3000) || 'N/A'}`
+Full Code:
+${comp.code || 'N/A'}`
   }
 
   private buildServiceContext(svc: any): string {
     const methods = svc.methods?.map((m: any) => m.name).join(', ') || ''
     return `Service: ${svc.name}
 File: ${svc.filePath}
+Lines: ${svc.lineStart}-${svc.lineEnd}
 Methods: ${methods}
-Dependencies: ${svc.dependencies?.join(', ') || 'None'}`
+Dependencies: ${svc.dependencies?.join(', ') || 'None'}
+
+Full Code:
+${svc.code || 'N/A'}`
   }
 
   isAvailable(): boolean {

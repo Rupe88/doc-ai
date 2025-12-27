@@ -269,8 +269,7 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
                    job.status === 'PROCESSING' ? 'processing' : 'pending',
             progress: job.progress || 0,
             jobId,
-            message: job.status === 'COMPLETED' && !successShown ? (() => { setSuccessShown(true); return 'Documentation generated successfully!'; })() :
-                     job.status === 'COMPLETED' ? 'Documentation generated successfully!' :
+            message: job.status === 'COMPLETED' ? (successShown ? 'Documentation generated successfully!' : (() => { setSuccessShown(true); return 'Documentation generated successfully!'; })()) :
                     job.status === 'FAILED' ? job.error || 'Generation failed' :
                     job.status === 'PROCESSING' ? `Processing... ${job.progress || 0}%` :
                     'Waiting to start...',

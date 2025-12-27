@@ -27,6 +27,7 @@ model User {
   docs              Doc[]
   chatSessions      ChatSession[]
   sessions          Session[]
+  codeReviews       CodeReview[]
   
   @@index([email])
   @@index([githubId])
@@ -69,6 +70,7 @@ model Repo {
   webhookId     Int?      // GitHub webhook ID
   analysisJobs  AnalysisJob[]
   codeIndex     CodeIndex?
+  codeReviews   CodeReview[]
   
   @@index([userId, status])
   @@index([lastSyncedAt])
@@ -177,10 +179,52 @@ model AnalysisJob {
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
-  
+
   repo          Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  
+
   @@index([repoId, status])
   @@index([status])
+}
+
+model CodeReview {
+  id               String    @id @default(cuid())
+  repoId           String
+  userId           String
+  filePath         String?
+  overallScore     Int
+  grade            String
+  totalIssues      Int
+  issuesByType     Json
+  issuesBySeverity Json
+  topIssues        Json
+  recommendations  Json
+  options          Json      @default("{}")
+  createdAt        DateTime  @default(now())
+
+  repo             Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([repoId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model PerformanceMetric {
+  id               String    @id @default(cuid())
+  endpoint         String
+  method           String
+  responseTime     Int
+  statusCode       Int
+  memoryUsage      Int
+  cpuUsage         Float
+  databaseQueries  Int
+  databaseQueryTime Int
+  cacheHitRate     Float
+  errorRate        Float
+  recordedAt       DateTime  @default(now())
+
+  @@index([endpoint])
+  @@index([recordedAt])
+  @@index([responseTime])
 }
 
