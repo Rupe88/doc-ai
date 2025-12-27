@@ -23,371 +23,450 @@ export interface CodeReviewSummary {
   recommendations: string[]
 }
 
-export class AICodeReviewer {
-  private aiPromise = getAIProviderWithFallback()
+export interface CodeIssue {
+  id: string
+  type: 'security' | 'quality' | 'performance' | 'maintainability' | 'best_practice'
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info'
+  title: string
+  description: string
+  filePath: string
+  lineStart?: number
+  lineEnd?: number
+  codeSnippet?: string
+  suggestion?: string
+  aiSuggestion?: string
+  category: string
+  confidence: number
+  tags: string[]
+}
 
-  async reviewCodebase(analysis: any): Promise<CodeReviewSummary> {
-    try {
-      const ai = await this.aiPromise
-      const issues: CodeReviewIssue[] = []
-
-      // Review functions for potential issues
-      if (analysis.functions?.length > 0) {
-        const functionIssues = await this.reviewFunctions(ai, analysis.functions.slice(0, 20))
-        issues.push(...functionIssues)
-      }
-
-      // Review API routes for security
-      if (analysis.apiRoutes?.length > 0) {
-        const apiIssues = await this.reviewAPIRoutes(ai, analysis.apiRoutes.slice(0, 15))
-        issues.push(...apiIssues)
-      }
-
-      // Review components for best practices
-      if (analysis.components?.length > 0) {
-        const componentIssues = await this.reviewComponents(ai, analysis.components.slice(0, 10))
-        issues.push(...componentIssues)
-      }
-
-      // Review classes for design patterns
-      if (analysis.classes?.length > 0) {
-        const classIssues = await this.reviewClasses(ai, analysis.classes.slice(0, 10))
-        issues.push(...classIssues)
-      }
-
-      // Calculate summary
-      const summary = this.calculateReviewSummary(issues)
-
-      logger.info('AI code review completed', {
-        totalIssues: issues.length,
-        score: summary.score,
-        grade: summary.grade
-      })
-
-      return summary
-    } catch (error: any) {
-      logger.error('AI code review failed:', { message: error?.message || 'Unknown error' })
-      return this.getFallbackReview()
-    }
+export interface CodeReviewResult {
+  summary: {
+    totalIssues: number
+    criticalCount: number
+    highCount: number
+    mediumCount: number
+    lowCount: number
+    infoCount: number
+    securityScore: number
+    qualityScore: number
+    performanceScore: number
+    maintainabilityScore: number
+    overallScore: number
   }
-
-  private async reviewFunctions(ai: any, functions: any[]): Promise<CodeReviewIssue[]> {
-    const issues: CodeReviewIssue[] = []
-
-    for (const func of functions) {
-      if (!func.code || func.code.length < 50) continue
-
-      const prompt = `Review this function for potential issues:
-
-Function: ${func.name}
-File: ${func.filePath}
-Lines: ${func.lineEnd - func.lineStart}
-Complexity: ${func.complexity || 'unknown'}
-
-Code:
-${func.code.substring(0, 1000)}
-
-Check for:
-1. Bugs and logic errors
-2. Performance issues
-3. Security vulnerabilities
-4. Code quality problems
-5. Best practices violations
-
-Return findings in JSON format with: type, severity, title, description, suggestion, confidence`
-
-      try {
-        const response = await ai.chat(prompt)
-        const findings = this.parseReviewResponse(response)
-
-        findings.forEach((finding: any) => {
-          issues.push({
-            type: finding.type || 'bug',
-            severity: finding.severity || 'medium',
-            title: finding.title || 'Issue detected',
-            description: finding.description || 'AI detected an issue',
-            file: func.filePath,
-            line: func.lineStart,
-            code: func.code.substring(0, 200),
-            suggestion: finding.suggestion || 'Review and fix this issue',
-            confidence: finding.confidence || 0.5
-          })
-        })
-      } catch (error) {
-        logger.warn('Failed to review function:', func.name)
-      }
-    }
-
-    return issues
+  issues: CodeIssue[]
+  recommendations: {
+    immediate: string[]
+    shortTerm: string[]
+    longTerm: string[]
   }
-
-  private async reviewAPIRoutes(ai: any, routes: any[]): Promise<CodeReviewIssue[]> {
-    const issues: CodeReviewIssue[] = []
-
-    for (const route of routes) {
-      const prompt = `Security review for API route:
-
-Method: ${route.method}
-Path: ${route.path}
-Protected: ${route.isProtected ? 'Yes' : 'No'}
-File: ${route.filePath}
-
-Code: ${route.code?.substring(0, 500) || 'Code not available'}
-
-Check for:
-1. Authentication/authorization issues
-2. Input validation problems
-3. SQL injection vulnerabilities
-4. XSS possibilities
-5. Rate limiting concerns
-6. CORS issues
-
-Return security findings in JSON format.`
-
-      try {
-        const response = await ai.chat(prompt)
-        const findings = this.parseReviewResponse(response)
-
-        findings.forEach((finding: any) => {
-          issues.push({
-            type: finding.type || 'security',
-            severity: finding.severity || 'high',
-            title: finding.title || 'Security issue detected',
-            description: finding.description || 'AI detected a security concern',
-            file: route.filePath,
-            suggestion: finding.suggestion || 'Review and fix this security issue',
-            confidence: finding.confidence || 0.8
-          })
-        })
-      } catch (error) {
-        logger.warn('Failed to review API route:', route.path)
-      }
-    }
-
-    return issues
+  analysis: {
+    filesAnalyzed: number
+    totalLines: number
+    analysisTime: number
+    aiSuggestionsCount: number
   }
-
-  private async reviewComponents(ai: any, components: any[]): Promise<CodeReviewIssue[]> {
-    const issues: CodeReviewIssue[] = []
-
-    for (const component of components) {
-      const prompt = `Review React component for best practices:
-
-Component: ${component.name}
-File: ${component.filePath}
-Props: ${component.props?.map((p: any) => p.name).join(', ') || 'none'}
-Server/Client: ${component.isServerComponent ? 'Server' : 'Client'}
-
-Check for:
-1. Performance issues (unnecessary re-renders)
-2. Accessibility problems
-3. State management issues
-4. Props validation
-5. Side effects handling
-6. Memory leaks
-
-Return findings in JSON format.`
-
-      try {
-        const response = await ai.chat(prompt)
-        const findings = this.parseReviewResponse(response)
-
-        findings.forEach((finding: any) => {
-          issues.push({
-            type: finding.type || 'maintainability',
-            severity: finding.severity || 'medium',
-            title: finding.title || 'Component issue detected',
-            description: finding.description || 'AI detected a component concern',
-            file: component.filePath,
-            suggestion: finding.suggestion || 'Review and improve this component',
-            confidence: finding.confidence || 0.6
-          })
-        })
-      } catch (error) {
-        logger.warn('Failed to review component:', component.name)
-      }
-    }
-
-    return issues
-  }
-
-  private async reviewClasses(ai: any, classes: any[]): Promise<CodeReviewIssue[]> {
-    const issues: CodeReviewIssue[] = []
-
-    for (const cls of classes) {
-      const prompt = `Review class design:
-
-Class: ${cls.name}
-File: ${cls.filePath}
-Extends: ${cls.extends || 'none'}
-Implements: ${cls.implements?.join(', ') || 'none'}
-Methods: ${cls.methods?.length || 0}
-
-Check for:
-1. SOLID principles violations
-2. Design pattern misapplications
-3. Inheritance issues
-4. Encapsulation problems
-5. Method complexity
-
-Return findings in JSON format.`
-
-      try {
-        const response = await ai.chat(prompt)
-        const findings = this.parseReviewResponse(response)
-
-        findings.forEach((finding: any) => {
-          issues.push({
-            type: finding.type || 'maintainability',
-            severity: finding.severity || 'medium',
-            title: finding.title || 'Class issue detected',
-            description: finding.description || 'AI detected a class design concern',
-            file: cls.filePath,
-            suggestion: finding.suggestion || 'Review and improve this class',
-            confidence: finding.confidence || 0.6
-          })
-        })
-      } catch (error) {
-        logger.warn('Failed to review class:', cls.name)
-      }
-    }
-
-    return issues
-  }
-
-  private parseReviewResponse(response: string): any[] {
-    try {
-      // Try to extract JSON from response
-      const jsonMatch = response.match(/\[[\s\S]*\]/) || response.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        return Array.isArray(parsed) ? parsed : [parsed]
-      }
-    } catch (error) {
-      logger.warn('Failed to parse review response JSON')
-    }
-
-    // Fallback - extract issues from text
-    return this.extractIssuesFromText(response)
-  }
-
-  private extractIssuesFromText(text: string): Partial<CodeReviewIssue>[] {
-    const issues: Partial<CodeReviewIssue>[] = []
-
-    // Simple pattern matching for common issues
-    if (text.toLowerCase().includes('security') || text.toLowerCase().includes('vulnerab')) {
-      issues.push({
-        type: 'security',
-        severity: 'high',
-        title: 'Security concern detected',
-        description: 'AI detected a potential security issue',
-        suggestion: 'Review and fix the security concern',
-        confidence: 0.8
-      })
-    }
-
-    if (text.toLowerCase().includes('performance') || text.toLowerCase().includes('slow')) {
-      issues.push({
-        type: 'performance',
-        severity: 'medium',
-        title: 'Performance issue detected',
-        description: 'AI detected a potential performance problem',
-        suggestion: 'Optimize the code for better performance',
-        confidence: 0.7
-      })
-    }
-
-    return issues
-  }
-
-  private calculateReviewSummary(issues: CodeReviewIssue[]): CodeReviewSummary {
-    const issuesByType = issues.reduce((acc, issue) => {
-      acc[issue.type] = (acc[issue.type] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    const issuesBySeverity = issues.reduce((acc, issue) => {
-      acc[issue.severity] = (acc[issue.severity] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    // Calculate score based on issues
-    const baseScore = 100
-    const penalty = issues.reduce((total, issue) => {
-      const severityMultiplier = { low: 1, medium: 2, high: 3, critical: 5 }
-      return total + (severityMultiplier[issue.severity] || 1)
-    }, 0)
-
-    const score = Math.max(0, Math.min(100, baseScore - penalty))
-
-    const grade = score >= 95 ? 'A+' : score >= 90 ? 'A' : score >= 85 ? 'B+' :
-                  score >= 80 ? 'B' : score >= 75 ? 'C+' : score >= 70 ? 'C' :
-                  score >= 65 ? 'D' : 'F'
-
-    const topIssues = issues
-      .sort((a, b) => {
-        const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 }
-        return severityOrder[b.severity] - severityOrder[a.severity]
-      })
-      .slice(0, 10)
-
-    const recommendations = this.generateRecommendations(issues, score)
-
-    return {
-      score,
-      grade,
-      totalIssues: issues.length,
-      issuesByType,
-      issuesBySeverity,
-      topIssues,
-      recommendations
-    }
-  }
-
-  private generateRecommendations(issues: CodeReviewIssue[], score: number): string[] {
-    const recommendations = []
-
-    if (score < 70) {
-      recommendations.push('🚨 CRITICAL: Multiple high-severity issues found. Address immediately.')
-    }
-
-    if (issues.filter(i => i.type === 'security').length > 0) {
-      recommendations.push('🔒 Security issues detected. Implement security fixes before deployment.')
-    }
-
-    if (issues.filter(i => i.type === 'performance').length > 0) {
-      recommendations.push('⚡ Performance optimizations needed. Review and optimize slow code paths.')
-    }
-
-    if (issues.filter(i => i.type === 'maintainability').length > 0) {
-      recommendations.push('🛠️ Code maintainability improvements recommended. Refactor complex code.')
-    }
-
-    recommendations.push('📝 Consider implementing automated code review in CI/CD pipeline.')
-    recommendations.push('🎯 Set up code quality gates to prevent similar issues.')
-
-    return recommendations.slice(0, 6)
-  }
-
-  private getFallbackReview(): CodeReviewSummary {
-    return {
-      score: 75,
-      grade: 'C',
-      totalIssues: 0,
-      issuesByType: {},
-      issuesBySeverity: {},
-      topIssues: [],
-      recommendations: [
-        'Code review analysis temporarily unavailable',
-        'Basic security and quality checks passed',
-        'Consider re-running analysis for detailed review'
-      ]
-    }
+  metadata: {
+    repositoryId: string
+    repositoryName: string
+    analyzedAt: Date
+    version: string
   }
 }
 
+export class AICodeReviewer {
+  private ai = getAIProviderWithFallback()
+
+  async reviewCodebase(
+    repoId: string,
+    repoName: string,
+    analysis: any,
+    options: {
+      includeAISuggestions?: boolean
+      severityThreshold?: 'critical' | 'high' | 'medium' | 'low' | 'info'
+      categories?: string[]
+      maxIssues?: number
+      includeTrends?: boolean
+    } = {}
+  ): Promise<CodeReviewResult> {
+    const startTime = Date.now()
+
+    logger.info('🚀 Starting AI code review', { repoId, repoName })
+
+    const issues: CodeIssue[] = []
+
+    // Security analysis
+    const securityIssues = await this.analyzeSecurity(analysis)
+    issues.push(...securityIssues)
+
+    // Quality analysis
+    const qualityIssues = await this.analyzeCodeQuality(analysis)
+    issues.push(...qualityIssues)
+
+    // Performance analysis
+    const performanceIssues = await this.analyzePerformance(analysis)
+    issues.push(...performanceIssues)
+
+    // Maintainability analysis
+    const maintainabilityIssues = await this.analyzeMaintainability(analysis)
+    issues.push(...maintainabilityIssues)
+
+    // Best practices
+    const bestPracticeIssues = await this.analyzeBestPractices(analysis)
+    issues.push(...bestPracticeIssues)
+
+    // Filter issues
+    let filteredIssues = this.filterIssues(issues, options)
+
+    // AI suggestions
+    if (options.includeAISuggestions) {
+      filteredIssues = await this.generateAISuggestions(filteredIssues, analysis)
+    }
+
+    // Add metadata
+    filteredIssues = filteredIssues.map((issue, index) => ({
+      ...issue,
+      id: issue.id || `issue-${Date.now()}-${index}`,
+    }))
+
+    const summary = this.calculateSummary(filteredIssues)
+    const recommendations = this.generateRecommendations(filteredIssues)
+
+    const result: CodeReviewResult = {
+      summary,
+      issues: filteredIssues,
+      recommendations,
+      analysis: {
+        filesAnalyzed: analysis?.files?.length || 0,
+        totalLines: analysis?.stats?.totalLines || 0,
+        analysisTime: Date.now() - startTime,
+        aiSuggestionsCount: filteredIssues.filter(i => i.aiSuggestion).length,
+      },
+      metadata: {
+        repositoryId: repoId,
+        repositoryName: repoName,
+        analyzedAt: new Date(),
+        version: '2.0.0',
+      },
+    }
+
+    logger.info('✅ Code review completed', {
+      repoId,
+      issues: result.summary.totalIssues
+    })
+
+    return result
+  }
+
+  private async analyzeSecurity(analysis: any): Promise<CodeIssue[]> {
+    const issues: CodeIssue[] = []
+
+    if (analysis.functions) {
+      for (const func of analysis.functions) {
+        const code = func.code || ''
+        const codeLower = code.toLowerCase()
+
+        // SQL Injection
+        if (codeLower.includes('sql(') || (codeLower.includes('select') && codeLower.includes('+'))) {
+          issues.push({
+            id: `security-${func.filePath}-${func.lineStart}`,
+            type: 'security',
+            severity: 'critical',
+            title: 'SQL Injection Vulnerability',
+            description: 'Direct string concatenation in database queries',
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            codeSnippet: code.substring(0, 200),
+            suggestion: 'Use parameterized queries',
+            category: 'Injection',
+            confidence: 0.85,
+            tags: ['security', 'sql-injection'],
+          })
+        }
+
+        // XSS
+        if ((codeLower.includes('innerhtml') || codeLower.includes('outerhtml')) && !codeLower.includes('sanitize')) {
+          issues.push({
+            id: `security-${func.filePath}-${func.lineStart}-xss`,
+            type: 'security',
+            severity: 'high',
+            title: 'XSS Vulnerability',
+            description: 'Unescaped user input in HTML',
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            codeSnippet: code.substring(0, 200),
+            suggestion: 'Escape user input',
+            category: 'XSS',
+            confidence: 0.80,
+            tags: ['security', 'xss'],
+          })
+        }
+      }
+    }
+
+    return issues
+  }
+
+  private async analyzeCodeQuality(analysis: any): Promise<CodeIssue[]> {
+    const issues: CodeIssue[] = []
+
+    if (analysis.functions) {
+      for (const func of analysis.functions) {
+        const code = func.code || ''
+        const lines = code.split('\n').length
+        const complexity = this.calculateComplexity(func)
+
+        if (complexity > 15) {
+          issues.push({
+            id: `quality-${func.filePath}-${func.lineStart}`,
+            type: 'quality',
+            severity: complexity > 25 ? 'high' : 'medium',
+            title: 'High Function Complexity',
+            description: `Function complexity: ${complexity}`,
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            codeSnippet: code.substring(0, 200),
+            suggestion: 'Break into smaller functions',
+            category: 'Complexity',
+            confidence: 0.90,
+            tags: ['quality', 'complexity'],
+          })
+        }
+
+        if (lines > 50) {
+          issues.push({
+            id: `quality-${func.filePath}-${func.lineStart}-length`,
+            type: 'quality',
+            severity: 'low',
+            title: 'Long Function',
+            description: `Function has ${lines} lines`,
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            suggestion: 'Split into smaller functions',
+            category: 'Length',
+            confidence: 0.85,
+            tags: ['quality', 'readability'],
+          })
+        }
+      }
+    }
+
+    return issues
+  }
+
+  private async analyzePerformance(analysis: any): Promise<CodeIssue[]> {
+    const issues: CodeIssue[] = []
+
+    if (analysis.functions) {
+      for (const func of analysis.functions) {
+        const code = func.code || ''
+        const codeLower = code.toLowerCase()
+
+        if (codeLower.includes('for') && codeLower.includes('query') && codeLower.includes('await')) {
+          issues.push({
+            id: `performance-${func.filePath}-${func.lineStart}`,
+            type: 'performance',
+            severity: 'high',
+            title: 'N+1 Query Issue',
+            description: 'Potential N+1 database queries',
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            codeSnippet: code.substring(0, 200),
+            suggestion: 'Use eager loading or batch queries',
+            category: 'Database',
+            confidence: 0.75,
+            tags: ['performance', 'database'],
+          })
+        }
+      }
+    }
+
+    return issues
+  }
+
+  private async analyzeMaintainability(analysis: any): Promise<CodeIssue[]> {
+    const issues: CodeIssue[] = []
+
+    if (analysis.functions && analysis.functions.length > 1) {
+      const seen = new Set()
+      for (const func of analysis.functions) {
+        const hash = this.simpleHash(func.code?.substring(0, 100) || '')
+        if (seen.has(hash) && func.code?.length > 50) {
+          issues.push({
+            id: `maintainability-${func.filePath}-${func.lineStart}`,
+            type: 'maintainability',
+            severity: 'medium',
+            title: 'Code Duplication',
+            description: 'Duplicate code detected',
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            suggestion: 'Extract to shared function',
+            category: 'Duplication',
+            confidence: 0.80,
+            tags: ['maintainability', 'duplication'],
+          })
+        }
+        seen.add(hash)
+      }
+    }
+
+    return issues
+  }
+
+  private async analyzeBestPractices(analysis: any): Promise<CodeIssue[]> {
+    const issues: CodeIssue[] = []
+
+    if (analysis.functions) {
+      for (const func of analysis.functions) {
+        const code = func.code || ''
+        const codeLower = code.toLowerCase()
+
+        if (!codeLower.includes('try') || !codeLower.includes('catch')) {
+          issues.push({
+            id: `practice-${func.filePath}-${func.lineStart}`,
+            type: 'best_practice',
+            severity: 'medium',
+            title: 'Missing Error Handling',
+            description: 'No try-catch blocks found',
+            filePath: func.filePath,
+            lineStart: func.lineStart,
+            codeSnippet: code.substring(0, 200),
+            suggestion: 'Add error handling',
+            category: 'Error Handling',
+            confidence: 0.75,
+            tags: ['best-practice', 'error-handling'],
+          })
+        }
+      }
+    }
+
+    return issues
+  }
+
+  private async generateAISuggestions(issues: CodeIssue[], analysis: any): Promise<CodeIssue[]> {
+    const aiProvider = await this.ai
+
+    for (const issue of issues.slice(0, 3)) {
+      try {
+        const prompt = `Improve this code issue: ${issue.title} - ${issue.description}`
+        const suggestion = await aiProvider.chat(prompt)
+        issue.aiSuggestion = suggestion
+      } catch (error) {
+        logger.warn('AI suggestion failed', { error })
+      }
+    }
+    return issues
+  }
+
+  private calculateSummary(issues: CodeIssue[]) {
+    const criticalCount = issues.filter(i => i.severity === 'critical').length
+    const highCount = issues.filter(i => i.severity === 'high').length
+    const mediumCount = issues.filter(i => i.severity === 'medium').length
+    const lowCount = issues.filter(i => i.severity === 'low').length
+    const infoCount = issues.filter(i => i.severity === 'info').length
+
+    return {
+      totalIssues: issues.length,
+      criticalCount,
+      highCount,
+      mediumCount,
+      lowCount,
+      infoCount,
+      securityScore: Math.max(0, 100 - (criticalCount * 20 + highCount * 10)),
+      qualityScore: Math.max(0, 100 - (highCount * 8 + mediumCount * 4)),
+      performanceScore: Math.max(0, 100 - (criticalCount * 15 + highCount * 8)),
+      maintainabilityScore: Math.max(0, 100 - (mediumCount * 6 + lowCount * 3)),
+      overallScore: Math.round((100 - issues.length * 2 + lowCount * 1) / 1),
+    }
+  }
+
+  private generateRecommendations(issues: CodeIssue[]) {
+    return {
+      immediate: [
+        issues.filter(i => i.severity === 'critical').length > 0 ?
+          'Fix critical security issues immediately' : 'Code looks good for critical issues'
+      ],
+      shortTerm: ['Add comprehensive testing', 'Implement error handling'],
+      longTerm: ['Set up automated code reviews', 'Establish coding standards'],
+    }
+  }
+
+  private filterIssues(issues: CodeIssue[], options: any): CodeIssue[] {
+    let filtered = issues
+
+    if (options.severityThreshold) {
+      const levels: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
+      const minLevel = levels[options.severityThreshold as string] || 0
+      filtered = filtered.filter(issue => levels[issue.severity] <= minLevel)
+    }
+
+    if (options.maxIssues) {
+      filtered = filtered.slice(0, options.maxIssues)
+    }
+
+    return filtered
+  }
+
+  private calculateComplexity(func: any): number {
+    const code = func.code || ''
+    let complexity = 1
+    const patterns = ['if', 'else', 'for', 'while', 'switch', 'catch', '&&', '||']
+    for (const pattern of patterns) {
+      complexity += (code.split(pattern).length - 1)
+    }
+    return complexity
+  }
+
+  private simpleHash(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i)
+      hash = hash & hash
+    }
+    return Math.abs(hash)
+  }
+}
+
+// Singleton instance
+let aiCodeReviewerInstance: AICodeReviewer | null = null
+
+export function getAICodeReviewer(): AICodeReviewer {
+  if (!aiCodeReviewerInstance) {
+    aiCodeReviewerInstance = new AICodeReviewer()
+  }
+  return aiCodeReviewerInstance
+}
+
+// Legacy compatibility
 export async function performAICodeReview(analysis: any): Promise<CodeReviewSummary> {
   const reviewer = new AICodeReviewer()
-  return reviewer.reviewCodebase(analysis)
-}
+  const result = await reviewer.reviewCodebase('legacy', 'legacy', analysis)
 
+  return {
+    score: result.summary.overallScore,
+    grade: result.summary.overallScore >= 80 ? 'A' : result.summary.overallScore >= 60 ? 'B' : 'C',
+    totalIssues: result.summary.totalIssues,
+    issuesByType: result.issues.reduce((acc, issue) => {
+      acc[issue.type] = (acc[issue.type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>),
+    issuesBySeverity: {
+      low: result.summary.lowCount,
+      medium: result.summary.mediumCount,
+      high: result.summary.highCount,
+      critical: result.summary.criticalCount,
+    },
+    topIssues: result.issues.slice(0, 5).map(issue => ({
+      type: issue.type as any,
+      severity: issue.severity as any,
+      title: issue.title,
+      description: issue.description,
+      file: issue.filePath,
+      line: issue.lineStart,
+      code: issue.codeSnippet,
+      suggestion: issue.suggestion || '',
+      confidence: issue.confidence,
+    })),
+    recommendations: [...result.recommendations.immediate, ...result.recommendations.shortTerm],
+  }
+}

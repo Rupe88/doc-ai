@@ -5,6 +5,8 @@
     <div style="width: 32px; height: 32px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #1E40AF;">AI</div>
     <span style="font-size: 24px; font-weight: bold; color: white;">DocAI</span>
   </div>
+
+  <p><strong>⚡ AI-Powered Code Documentation • 💰 Crypto Payments • 🚀 Production Ready</strong></p>
 </div>
 
 <div align="center">
@@ -35,6 +37,28 @@
 - **Advanced Security Scanning** - 16+ pattern detection for vulnerabilities
 - **Real-time Security Monitoring** - Continuous codebase security analysis
 - **Code Quality Metrics** - Complexity analysis, tech debt tracking, maintainability scores
+
+### 🤖 Enhanced AI Chat System
+- **Intelligent Code Search** - Semantic search with keyword fallback
+- **Exact Code Retrieval** - Get functions/classes with line numbers
+- **Context-Aware Responses** - Understands conversation history
+- **Helpful Error Messages** - Guides users when code isn't found
+- **Repository Status API** - Check indexing and analysis status
+
+### 💰 Payments & Monetization
+- **NOWPayments Integration** - Accept 40+ cryptocurrencies globally
+- **No Banking Restrictions** - Perfect for Nepal & international SaaS
+- **Enterprise-Grade Security** - IPN signature verification & encryption
+- **Flexible Subscription Management** - Automatic tier upgrades/downgrades
+- **Multi-Currency Support** - BTC, ETH, USDC, USDT, LTC & more
+- **Real-time Payment Processing** - Instant confirmations & notifications
+
+#### NOWPayments Setup Guide:
+1. **Create Account:** Visit https://nowpayments.io/ → Sign up for Business
+2. **Complete Verification:** Business details & KYC verification
+3. **Get API Credentials:** Dashboard → API Keys
+4. **Configure IPN:** Settings → IPN Settings → Add webhook URL
+5. **Add Environment Variables:** Set `NOWPAYMENTS_API_KEY` & `NOWPAYMENTS_IPN_SECRET`
 - **Dependency Analysis** - Visualize imports, detect circular dependencies, identify orphan files
 - **API Auto-Documentation** - OpenAPI spec generation for all endpoints
 - **Framework Security Docs** - Specialized security documentation for major frameworks

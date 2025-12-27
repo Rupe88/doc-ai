@@ -41,7 +41,7 @@ export const POST = createApiHandler(
 
     // Use RAG engine for intelligent code-aware chat
     const rag = getRAGEngine()
-    let ragAvailable = rag.isAvailable()
+    let ragAvailable = await rag.isAvailable(repoId)
 
     let response = ''
     let sources: Array<{ type: string; name: string; filePath?: string; relevance: number }> = []
@@ -103,10 +103,11 @@ export const POST = createApiHandler(
         }
       }
 
-      // Build system prompt with context
+      // Build enhanced system prompt with better guidance
       const systemPrompt = `You are an expert code documentation assistant for the "${repo.fullName}" repository.
 
-You have deep knowledge of the codebase and can answer questions about:
+## YOUR CAPABILITIES:
+You have knowledge of the codebase and can help with:
 - Code structure, functions, classes, and API endpoints
 - Backend logic, database models, and services
 - Security vulnerabilities and best practices
@@ -114,17 +115,24 @@ You have deep knowledge of the codebase and can answer questions about:
 - Dependencies, configurations, and setup
 - Architecture patterns and design decisions
 
-${contextText ? `## RELEVANT DOCUMENTATION:\n${contextText}` : '## NOTE: No specific documentation context found. Provide general guidance based on common practices.'}
+${contextText ? `## AVAILABLE DOCUMENTATION:\n${contextText}` : '## LIMITATION: No specific documentation context available for this query.'}
 
-## INSTRUCTIONS:
-1. Be concise but thorough in your answers
-2. Include code examples when helpful (use proper syntax highlighting)
-3. Reference specific files and patterns when available
-4. If you find security issues, explain the risk and how to fix
-5. Proactively suggest improvements when relevant
-6. If you're not sure about something, say so honestly
-7. Format responses with markdown for readability
-8. Focus on backend/API development patterns unless specified otherwise`
+## RESPONSE GUIDELINES:
+1. **Be helpful and specific** - Even without full context, provide valuable guidance
+2. **Include code examples** - Use proper TypeScript/JavaScript syntax highlighting
+3. **Reference patterns** - Use common best practices when specific code isn't available
+4. **Security focus** - Always mention security considerations
+5. **Suggest improvements** - Provide actionable recommendations
+6. **Honest about limitations** - If you don't have specific info, clearly state it
+7. **Markdown formatting** - Use proper formatting for readability
+8. **Context-aware** - Adapt to whether documentation context is available
+
+## IF NO CONTEXT IS AVAILABLE:
+- Provide general best practices for the technology stack
+- Suggest common patterns and implementations
+- Guide the user toward finding the relevant code
+- Recommend re-generating documentation if needed
+- Still be maximally helpful with general programming knowledge`
 
       // Build message history for AI
       const messages = [

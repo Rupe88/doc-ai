@@ -10,25 +10,26 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  name              String?
-  image             String?
-  githubId          String?   @unique
-  githubToken       String?   // Encrypted
-  paddleCustomerId  String?   @unique
-  subscriptionTier  String    @default("FREE") // FREE, PRO, TEAM, ENTERPRISE
-  subscriptionStatus String   @default("ACTIVE")
-  subscriptionEndsAt DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  repos             Repo[]
-  docs              Doc[]
-  chatSessions      ChatSession[]
-  sessions          Session[]
-  codeReviews       CodeReview[]
-  
+  id                          String    @id @default(cuid())
+  email                       String    @unique
+  name                        String?
+  image                       String?
+  githubId                    String?   @unique
+  githubToken                 String?   // Encrypted
+  subscriptionTier            String    @default("FREE") // FREE, PRO, TEAM, ENTERPRISE
+  subscriptionStatus          String    @default("ACTIVE")
+  subscriptionEndsAt          DateTime?
+  paymentMethod               String?   // 'crypto', 'card', etc.
+  lastChargeId                String?   // For crypto payments
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  repos                       Repo[]
+  docs                        Doc[]
+  chatSessions                ChatSession[]
+  sessions                    Session[]
+  codeReviews                 CodeReview[]
+
   @@index([email])
   @@index([githubId])
   @@index([subscriptionTier])
@@ -190,16 +191,10 @@ model CodeReview {
   id               String    @id @default(cuid())
   repoId           String
   userId           String
-  filePath         String?
-  overallScore     Int
-  grade            String
-  totalIssues      Int
-  issuesByType     Json
-  issuesBySeverity Json
-  topIssues        Json
-  recommendations  Json
-  options          Json      @default("{}")
+  result           String    // JSON string of CodeReviewResult
+  summary          Json      // Cached summary for quick access
   createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   repo             Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)

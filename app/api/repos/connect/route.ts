@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 import { successResponse, ValidationError, ExternalServiceError, NotFoundError } from '@/lib/utils/error-handler'
 import { logger } from '@/lib/utils/logger'
 import { z } from 'zod'
-import { TIER_LIMITS } from '@/lib/paddle/subscriptions'
+import { TIER_LIMITS } from '@/lib/crypto/subscriptions'
 
 const connectRepoSchema = z.object({
   githubRepoId: z.number().int().positive('Invalid repository ID'),

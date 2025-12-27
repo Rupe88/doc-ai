@@ -235,6 +235,33 @@ class VectorStore {
     return Math.abs(hash)
   }
 
+  async getDocumentCount(repoId: string): Promise<number> {
+    try {
+      const response = await fetch(`${this.qdrantUrl}/collections/${this.collectionName}/points/count`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          filter: {
+            must: [
+              {
+                key: 'repoId',
+                match: { value: repoId }
+              }
+            ]
+          }
+        })
+      })
+
+      if (!response.ok) return 0
+
+      const data = await response.json()
+      return data.result?.count || 0
+    } catch (error) {
+      console.warn('[VectorStore] Failed to count documents:', error)
+      return 0
+    }
+  }
+
   isAvailable(): boolean {
     return !!this.qdrantUrl
   }

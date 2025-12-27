@@ -139,8 +139,10 @@ export class RAGEngine {
     const results = await this.vectorStore.search(context.query, context.repoId, 8)
 
     if (results.length === 0) {
+      // Provide helpful guidance based on query type
+      const helpfulResponse = this.generateHelpfulResponse(context.query, context.repoName)
       return {
-        answer: "I couldn't find relevant code for your question. Try regenerating the documentation or asking a more specific question.",
+        answer: helpfulResponse,
         sources: [],
       }
     }
@@ -288,10 +290,146 @@ This is the complete implementation from your codebase.`
   }
 
   /**
-   * Search for code semantically
+   * Enhanced search with multiple strategies for maximum relevance
    */
-  async searchCode(query: string, repoId: string, limit: number = 10): Promise<SearchResult[]> {
-    return this.vectorStore.search(query, repoId, limit)
+  async searchCode(query: string, repoId: string, limit: number = 15): Promise<SearchResult[]> {
+    try {
+      // Get semantic search results
+      let results = await this.vectorStore.search(query, repoId, limit)
+
+      // If semantic search returns few results, try keyword-based search
+      if (results.length < 3) {
+        console.log('[RAG] Semantic search returned few results, trying keyword search')
+        const keywordResults = await this.keywordSearch(query, repoId, limit)
+        results = [...results, ...keywordResults].slice(0, limit)
+      }
+
+      // Boost results by type relevance
+      results = this.boostResultsByType(results, query)
+
+      // Remove duplicates and sort by relevance
+      results = this.deduplicateAndSort(results)
+
+      console.log(`[RAG] Found ${results.length} relevant results for query: "${query}"`)
+
+      return results
+    } catch (error) {
+      console.error('[RAG] Enhanced search failed:', error)
+      return []
+    }
+  }
+
+  /**
+   * Keyword-based search as fallback
+   */
+  private async keywordSearch(query: string, repoId: string, limit: number): Promise<SearchResult[]> {
+    try {
+      const keywords = this.extractKeywords(query)
+
+      // Search for each keyword combination
+      const allResults: SearchResult[] = []
+
+      for (const keyword of keywords) {
+        const results = await this.vectorStore.search(keyword, repoId, Math.ceil(limit / keywords.length))
+
+        // Boost results that contain the actual keyword
+        results.forEach(result => {
+          if (result.content.toLowerCase().includes(keyword.toLowerCase())) {
+            result.score *= 1.5 // Boost exact matches
+          }
+        })
+
+        allResults.push(...results)
+      }
+
+      return allResults
+    } catch (error) {
+      console.warn('[RAG] Keyword search failed:', error)
+      return []
+    }
+  }
+
+  /**
+   * Extract meaningful keywords from query
+   */
+  private extractKeywords(query: string): string[] {
+    const words = query.toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Remove punctuation
+      .split(/\s+/)
+      .filter(word => word.length > 2) // Remove short words
+      .filter(word => !this.isStopWord(word)) // Remove stop words
+
+    // Extract function/class names (camelCase, snake_case)
+    const identifiers = query.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []
+    const meaningfulIdentifiers = identifiers.filter(id =>
+      id.length > 3 && !this.isStopWord(id.toLowerCase())
+    )
+
+    return [...new Set([...words, ...meaningfulIdentifiers])].slice(0, 5)
+  }
+
+  /**
+   * Check if word is a stop word
+   */
+  private isStopWord(word: string): boolean {
+    const stopWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'an', 'a', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'how', 'what', 'when', 'where', 'why', 'which', 'who', 'that', 'this', 'these', 'those']
+    return stopWords.includes(word)
+  }
+
+  /**
+   * Boost results based on query type and content
+   */
+  private boostResultsByType(results: SearchResult[], query: string): SearchResult[] {
+    const queryLower = query.toLowerCase()
+
+    return results.map(result => {
+      let boost = 1.0
+
+      // Boost based on query type
+      if (queryLower.includes('function') && result.metadata.type === 'function') boost *= 1.8
+      if (queryLower.includes('class') && result.metadata.type === 'class') boost *= 1.8
+      if (queryLower.includes('api') && result.metadata.type === 'api') boost *= 1.8
+      if (queryLower.includes('component') && result.metadata.type === 'component') boost *= 1.8
+
+      // Boost exact name matches
+      if (result.metadata.name && queryLower.includes(result.metadata.name.toLowerCase())) {
+        boost *= 2.0
+      }
+
+      // Boost file path relevance
+      if (result.metadata.filePath) {
+        const fileName = result.metadata.filePath.toLowerCase()
+        if (queryLower.includes('route') && fileName.includes('route')) boost *= 1.5
+        if (queryLower.includes('model') && fileName.includes('model')) boost *= 1.5
+        if (queryLower.includes('service') && fileName.includes('service')) boost *= 1.5
+        if (queryLower.includes('controller') && fileName.includes('controller')) boost *= 1.5
+      }
+
+      result.score *= boost
+      return result
+    })
+  }
+
+  /**
+   * Remove duplicates and sort by relevance
+   */
+  private deduplicateAndSort(results: SearchResult[]): SearchResult[] {
+    const seen = new Set<string>()
+    const unique: SearchResult[] = []
+
+    // Sort by score descending
+    results.sort((a, b) => b.score - a.score)
+
+    for (const result of results) {
+      const key = `${result.metadata.type}-${result.metadata.name}-${result.metadata.filePath}`
+
+      if (!seen.has(key)) {
+        seen.add(key)
+        unique.push(result)
+      }
+    }
+
+    return unique.slice(0, 10) // Return top 10
   }
 
   /**
@@ -410,8 +548,59 @@ Full Code:
 ${svc.code || 'N/A'}`
   }
 
-  isAvailable(): boolean {
-    return this.vectorStore.isAvailable()
+  async isAvailable(repoId?: string): Promise<boolean> {
+    try {
+      // Check if vector store is configured
+      const vectorAvailable = this.vectorStore.isAvailable()
+      if (!vectorAvailable) return false
+
+      // If repoId provided, check if it has indexed data
+      if (repoId) {
+        const count = await this.vectorStore.getDocumentCount(repoId)
+        return count > 0
+      }
+
+      return true
+    } catch (error) {
+      console.warn('[RAG] Availability check failed:', error)
+      return false
+    }
+  }
+
+  /**
+   * Generate helpful response when no code is found
+   */
+  private generateHelpfulResponse(query: string, repoName: string): string {
+    const queryLower = query.toLowerCase()
+
+    // Provide specific guidance based on query type
+    if (queryLower.includes('function') || queryLower.includes('method')) {
+      return `I couldn't find specific function information in your "${repoName}" codebase. This usually means:\n\n**Possible Issues:**\n• Repository hasn't been indexed yet (run documentation generation)\n• Function name might be different\n• Code might not be analyzed\n\n**Try asking:**\n• "What does the \`createUser\` function do?"\n• "Show me the login function"\n• "What functions handle authentication?"\n\n**To fix:** Generate documentation for your repository first.`
+    }
+
+    if (queryLower.includes('api') || queryLower.includes('endpoint') || queryLower.includes('route')) {
+      return `I couldn't find API endpoint information in "${repoName}". This could be because:\n\n**Common Issues:**\n• API routes haven't been indexed\n• Different naming conventions\n• Routes defined in separate files\n\n**Try asking:**\n• "What are the API endpoints?"\n• "Show me the user routes"\n• "How do you handle POST /api/users?"\n\n**Solution:** Re-run the repository analysis to index all API routes.`
+    }
+
+    if (queryLower.includes('database') || queryLower.includes('model') || queryLower.includes('schema')) {
+      return `No database/model information found in "${repoName}". This typically means:\n\n**Possible Causes:**\n• Database models not indexed\n• Different ORM/structure used\n• Models defined differently\n\n**Try asking:**\n• "What does the User model contain?"\n• "Show me the database schema"\n• "How do you create new records?"\n\n**Fix:** Ensure your repository analysis includes database files.`
+    }
+
+    if (queryLower.includes('auth') || queryLower.includes('login') || queryLower.includes('security')) {
+      return `Couldn't find authentication/security code in "${repoName}". Try:\n\n• "Show me the auth middleware"\n• "What authentication system do you use?"\n• "How do you handle JWT tokens?"\n• "Show me the login logic"\n\n**Note:** Security code might be in separate files or use different naming.`
+    }
+
+    // General helpful response
+    return `I couldn't find relevant code for "${query}" in your "${repoName}" repository. This usually happens when:\n\n🔍 **Repository not indexed** - Run documentation generation first\n📝 **Different terminology** - Try rephrasing (e.g., "login" vs "authentication")\n🎯 **Too general** - Ask about specific functions/classes/files\n\n**Helpful questions to try:**
+• "What functions are available?"
+• "Show me the main API routes"
+• "What does the User model contain?"
+• "How do you handle authentication?"
+• "What are the main components?"
+
+**Quick Fix:** Re-analyze your repository to ensure all code is indexed properly.
+
+What specific part of your codebase would you like to know about?`
   }
 }
 

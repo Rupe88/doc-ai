@@ -14,14 +14,14 @@ export default function SettingsPage() {
 
   const fetchSubscription = async () => {
     try {
-      const response = await fetch('/api/paddle/subscription', {
+      const response = await fetch('/api/crypto/subscription', {
         credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch subscription')
       }
-      
+
       const data = await response.json()
       setSubscription(data.success ? data.data : null)
     } catch (error) {
@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
   const handleUpgrade = async (tier: string) => {
     try {
-      const response = await fetch('/api/paddle/checkout', {
+      const response = await fetch('/api/crypto/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,18 +41,18 @@ export default function SettingsPage() {
         credentials: 'include',
         body: JSON.stringify({ tier }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to create checkout')
       }
-      
+
       const data = await response.json()
       if (data.success && data.data?.checkoutUrl) {
         window.location.href = data.data.checkoutUrl
       }
     } catch (error) {
-      console.error('Failed to create checkout:', error)
-      alert('Failed to create checkout. Please try again.')
+      console.error('Failed to create crypto checkout:', error)
+      alert('Failed to create crypto payment. Please try again.')
     }
   }
 

@@ -47,7 +47,7 @@ export const POST = createApiHandler(
 
     // Initialize RAG engine
     const rag = getRAGEngine()
-    const ragAvailable = rag.isAvailable()
+    const ragAvailable = await rag.isAvailable(repoId)
 
     let answer: string
     let sources: any[] = []

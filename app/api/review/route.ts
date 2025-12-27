@@ -1,122 +1,158 @@
 /**
- * AI Code Review API
- * Automated code review with intelligent suggestions
+ * AI Code Review API - Advanced Code Analysis & Recommendations
+ * Provides comprehensive code review with security, quality, and performance analysis
+ * Includes real-time analytics and AI-powered improvement suggestions
  */
 
 import { NextRequest } from 'next/server'
-import { performAICodeReview } from '@/lib/ai/code-reviewer'
-import { createApiHandler, requireUser } from '@/lib/utils/api-wrapper'
-import { successResponse } from '@/lib/utils/error-handler'
+import { getAICodeReviewer } from '@/lib/ai/code-reviewer'
+import { getCodeReviewAnalytics } from '@/lib/analytics/code-review-analytics'
+import { createApiHandler, requireUser, getRequestBody } from '@/lib/utils/api-wrapper'
+import { successResponse, NotFoundError, checkResourceAccess } from '@/lib/utils/error-handler'
 import { prisma } from '@/lib/db/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/utils/logger'
 
 const reviewSchema = z.object({
   repoId: z.string().cuid(),
-  filePath: z.string().optional(), // Review specific file or entire repo
+  analysis: z.any(), // ComprehensiveAnalysis object
   options: z.object({
-    includeSecurity: z.boolean().optional(),
-    includePerformance: z.boolean().optional(),
-    includeMaintainability: z.boolean().optional(),
-    maxIssues: z.number().min(1).max(100).optional(),
+    includeAISuggestions: z.boolean().optional().default(true),
+    severityThreshold: z.enum(['critical', 'high', 'medium', 'low', 'info']).optional(),
+    categories: z.array(z.string()).optional(),
+    maxIssues: z.number().optional(),
+    includeTrends: z.boolean().optional().default(false),
   }).optional(),
 })
 
-export const POST = createApiHandler(
+// Get existing code review for a repository
+export const GET = createApiHandler(
   async (context) => {
     const user = requireUser(context)
-    const { repoId, filePath, options } = await context.request.json()
-    const data = reviewSchema.parse({ repoId, filePath, options })
+    const repoId = context.params?.repoId
 
-    // Verify repo access
+    if (!repoId) {
+      throw new Error('Repository ID is required')
+    }
+
     const repo = await prisma.repo.findUnique({
       where: { id: repoId },
       select: { id: true, userId: true, fullName: true },
     })
 
-    if (!repo || repo.userId !== user.id) {
-      throw new Error('Repository not found or access denied')
-    }
+    if (!repo) throw new NotFoundError('Repository')
+    checkResourceAccess(user.id, repo.userId, 'Repository')
 
-    // Get the latest completed analysis job for the repo
-    const analysisJob = await prisma.analysisJob.findFirst({
-      where: { repoId, status: 'COMPLETED' },
-      orderBy: { completedAt: 'desc' },
-    })
-
-    if (!analysisJob) {
-      throw new Error('No completed analysis found. Please generate documentation first.')
-    }
-
-    // For now, we'll use a mock analysis result
-    // In production, you'd store the actual analysis result
-    const mockAnalysisResult = {
-      functions: [],
-      classes: [],
-      apiRoutes: [],
-      components: [],
-      stats: { totalFiles: 10, totalLines: 1000, codeLines: 800 },
-      securityIssues: [],
-      vulnerabilities: [],
-      securityScore: 85,
-      qualityScore: 80,
-      patterns: ['typescript', 'react', 'nextjs']
-    }
-
-    // Perform AI code review
-    const reviewResult = await performAICodeReview(mockAnalysisResult)
-
-    // Save review results
-    await prisma.codeReview.create({
-      data: {
+    // Check if we have a cached review result
+    const cachedReview = await prisma.codeReview.findFirst({
+      where: {
         repoId,
         userId: user.id,
-        filePath,
-        overallScore: reviewResult.score,
-        grade: reviewResult.grade,
-        totalIssues: reviewResult.totalIssues,
-        issuesByType: reviewResult.issuesByType as any,
-        issuesBySeverity: reviewResult.issuesBySeverity as any,
-        topIssues: reviewResult.topIssues as any,
-        recommendations: reviewResult.recommendations as any,
-        options: (options || {}) as any,
       },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
     })
+
+    if (cachedReview) {
+      return successResponse({
+        reviewResult: JSON.parse(cachedReview.result as string),
+        cached: true,
+        lastReviewed: cachedReview.createdAt,
+      })
+    }
 
     return successResponse({
-      review: reviewResult,
-      repoName: repo.fullName,
+      message: 'No cached review found. Please run a new code review.',
+      cached: false,
     })
-  },
-  { requireAuth: true, methods: ['POST'] }
-)
-
-// Get review history for a repository
-export const GET = createApiHandler(
-  async (context) => {
-    const user = requireUser(context)
-    const repoId = context.request.nextUrl.searchParams.get('repoId')
-
-    if (!repoId) {
-      throw new Error('repoId parameter required')
-    }
-
-    // Verify repo access
-    const repo = await prisma.repo.findUnique({
-      where: { id: repoId },
-      select: { id: true, userId: true },
-    })
-
-    if (!repo || repo.userId !== user.id) {
-      throw new Error('Repository not found or access denied')
-    }
-
-    const reviews = await prisma.codeReview.findMany({
-      where: { repoId },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    })
-
-    return successResponse({ reviews })
   },
   { requireAuth: true, methods: ['GET'] }
+)
+
+// Run comprehensive AI code review
+export const POST = createApiHandler(
+  async (context) => {
+    const user = requireUser(context)
+    const { repoId, analysis, options = {} } = await getRequestBody(context, reviewSchema)
+
+    const repo = await prisma.repo.findUnique({
+      where: { id: repoId },
+      select: { id: true, userId: true, fullName: true },
+    })
+
+    if (!repo) throw new NotFoundError('Repository')
+    checkResourceAccess(user.id, repo.userId, 'Repository')
+
+    logger.info('🚀 Starting comprehensive AI code review', {
+      repoId,
+      repoName: repo.fullName,
+      userId: user.id,
+      options
+    })
+
+    const reviewer = getAICodeReviewer()
+
+    try {
+      const reviewResult = await reviewer.reviewCodebase(
+        repoId,
+        repo.fullName,
+        analysis,
+        {
+          includeAISuggestions: options.includeAISuggestions ?? true,
+          severityThreshold: options.severityThreshold,
+          categories: options.categories,
+          maxIssues: options.maxIssues,
+          includeTrends: options.includeTrends ?? false,
+        }
+      )
+
+      // Cache the review result
+      await prisma.codeReview.create({
+        data: {
+          repoId,
+          userId: user.id,
+          result: JSON.stringify(reviewResult),
+          summary: {
+            totalIssues: reviewResult.summary.totalIssues,
+            criticalIssues: reviewResult.summary.criticalCount,
+            highIssues: reviewResult.summary.highCount,
+            securityScore: reviewResult.summary.securityScore,
+            qualityScore: reviewResult.summary.qualityScore,
+          },
+        },
+      })
+
+      // Track analytics
+      const analytics = getCodeReviewAnalytics()
+      await analytics.trackCodeReview({
+        repoId,
+        userId: user.id,
+        reviewResult,
+        analysisTime: reviewResult.analysis.analysisTime,
+      })
+
+      logger.info('✅ AI code review completed and cached', {
+        repoId,
+        totalIssues: reviewResult.summary.totalIssues,
+        analysisTime: reviewResult.analysis.analysisTime,
+        aiSuggestions: reviewResult.analysis.aiSuggestionsCount,
+      })
+
+      return successResponse({
+        reviewResult,
+        cached: false,
+        analysisTime: reviewResult.analysis.analysisTime,
+      })
+
+    } catch (error) {
+      logger.error('❌ AI code review failed', {
+        error: error instanceof Error ? error.message : String(error),
+        repoId,
+        userId: user.id,
+      })
+
+      throw new Error('Code review analysis failed. Please try again.')
+    }
+  },
+  { requireAuth: true, methods: ['POST'] }
 )

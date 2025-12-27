@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from './button'
 import { Check, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { useState } from 'react'
 
 interface PricingCardProps {
   name: string
@@ -13,6 +14,8 @@ interface PricingCardProps {
   features: string[]
   popular?: boolean
   delay?: number
+  tier?: string
+  currentTier?: string
 }
 
 export function PricingCard({
@@ -23,7 +26,42 @@ export function PricingCard({
   features,
   popular = false,
   delay = 0,
+  tier,
+  currentTier,
 }: PricingCardProps) {
+  const [isUpgrading, setIsUpgrading] = useState(false)
+
+  const handleUpgrade = async () => {
+    if (!tier || tier === 'FREE' || tier === currentTier) return
+
+    setIsUpgrading(true)
+    try {
+      const response = await fetch('/api/crypto/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ tier }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create crypto checkout')
+      }
+
+      const data = await response.json()
+      if (data.success && data.data?.checkoutUrl) {
+        window.location.href = data.data.checkoutUrl
+      } else {
+        throw new Error('Invalid crypto checkout response')
+      }
+    } catch (error) {
+      console.error('Failed to create crypto checkout:', error)
+      alert('Failed to create crypto payment. Please try again.')
+    } finally {
+      setIsUpgrading(false)
+    }
+  }
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -71,14 +109,23 @@ export function PricingCard({
       </ul>
 
       <Button
-        asChild
+        onClick={tier === 'FREE' || tier === currentTier ? undefined : handleUpgrade}
+        disabled={isUpgrading || tier === currentTier}
         className={`w-full font-poppins font-semibold ${
           popular
             ? 'btn-primary'
             : 'btn-secondary'
         }`}
       >
-        <Link href="/api/github/connect">Get started</Link>
+        {isUpgrading ? (
+          'Processing...'
+        ) : tier === currentTier ? (
+          'Current Plan'
+        ) : tier === 'FREE' ? (
+          'Get started'
+        ) : (
+          'Upgrade Now'
+        )}
       </Button>
     </motion.div>
   )

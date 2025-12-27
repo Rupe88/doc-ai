@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis'
 import { NextResponse } from 'next/server'
-import type { SubscriptionTier } from '@/types/paddle'
+import type { SubscriptionTier } from '@/lib/crypto/subscriptions'
 
 const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   ? new Redis({
