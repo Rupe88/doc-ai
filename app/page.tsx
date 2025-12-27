@@ -27,11 +27,44 @@ import { motion } from 'framer-motion'
 export default function Home() {
   const router = useRouter()
   const [isChecking, setIsChecking] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
 
-  // Check if user is already logged in
+  // Check if user is already logged in and handle auth errors
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Check for error parameters in URL
+        const urlParams = new URLSearchParams(window.location.search)
+        const error = urlParams.get('error')
+
+        if (error) {
+          // Handle different error types
+          switch (error) {
+            case 'auth_failed':
+              setAuthError('Authentication failed. Please try again.')
+              break
+            case 'access_denied':
+              setAuthError('GitHub access was denied. Please try again.')
+              break
+            case 'oauth_not_configured':
+              setAuthError('GitHub OAuth is not configured. Please contact support.')
+              break
+            case 'no_code':
+              setAuthError('Authorization code missing. Please try again.')
+              break
+            case 'token_exchange_failed':
+              setAuthError('Failed to exchange authorization token. Please try again.')
+              break
+            case 'no_access_token':
+              setAuthError('No access token received. Please try again.')
+              break
+            default:
+              setAuthError('An authentication error occurred. Please try again.')
+          }
+          // Clear the error from URL
+          window.history.replaceState({}, document.title, window.location.pathname)
+        }
+
         const response = await fetch('/api/auth/session', {
           credentials: 'include',
         })
@@ -173,6 +206,32 @@ export default function Home() {
   }
 
   return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Error Display */}
+      {authError && (
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
+        >
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 text-red-400 text-sm max-w-md">
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span>{authError}</span>
+            </div>
+            <button
+              onClick={() => setAuthError(null)}
+              className="absolute top-2 right-2 text-red-400 hover:text-red-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </motion.div>
+      )}
     <main className="min-h-screen bg-background text-foreground">
       <Navbar />
 
@@ -718,5 +777,6 @@ export default function Home() {
         </div>
       </footer>
     </main>
+    </div>
   )
 }
