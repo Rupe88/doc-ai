@@ -175,7 +175,6 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-20"
           >
-            <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No repositories</h3>
             <p className="text-gray-400 text-sm mb-6">
               Get started by connecting your first repository.

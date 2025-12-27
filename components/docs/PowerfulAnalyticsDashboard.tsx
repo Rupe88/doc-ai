@@ -420,9 +420,9 @@ export function PowerfulAnalyticsDashboard({ repoId }: PowerfulAnalyticsDashboar
               <div className="relative h-4 bg-slate-800 rounded-full overflow-hidden mb-4">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${analytics.quality?.score || 80}%` }}
+                  animate={{ width: `${analytics.quality?.score || 0}%` }}
                   transition={{ duration: 1, ease: 'easeOut' }}
-                  className={`absolute inset-y-0 left-0 bg-gradient-to-r ${gradeColors[analytics.quality?.grade || getGradeFromScore(analytics.quality?.score || 80)]} rounded-full`}
+                  className={`absolute inset-y-0 left-0 bg-gradient-to-r ${gradeColors[analytics.quality?.grade || getGradeFromScore(analytics.quality?.score || 0)]} rounded-full`}
                 />
               </div>
               <div className="flex justify-between text-sm">

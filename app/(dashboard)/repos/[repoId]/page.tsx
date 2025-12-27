@@ -27,6 +27,7 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [activeTab, setActiveTab] = useState<TabType>('docs')
+  const [successShown, setSuccessShown] = useState(false)
   const [generationStatus, setGenerationStatus] = useState<{
     status: 'idle' | 'pending' | 'processing' | 'completed' | 'failed'
     progress?: number
@@ -95,6 +96,7 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
 
   const handleGenerateDocs = async () => {
     setGenerating(true)
+    setSuccessShown(false)
     setGenerationStatus({ status: 'processing', progress: 5, message: 'Starting generation...' })
 
     try {
@@ -219,13 +221,14 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
           throw new Error(data.error?.message || 'Failed to generate documentation')
         }
         
-        if (data.data?.status === 'COMPLETED') {
+        if (data.data?.status === 'COMPLETED' && !successShown) {
           setGenerationStatus({
             status: 'completed',
             progress: 100,
             jobId: data.data.jobId,
             message: 'Documentation generated successfully!',
           })
+          setSuccessShown(true)
           // Let the useEffect handle the reset to avoid duplicate messages
           setGenerating(false)
         } else if (data.data?.status === 'FAILED') {
@@ -266,7 +269,8 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
                    job.status === 'PROCESSING' ? 'processing' : 'pending',
             progress: job.progress || 0,
             jobId,
-            message: job.status === 'COMPLETED' ? 'Documentation generated successfully!' :
+            message: job.status === 'COMPLETED' && !successShown ? (() => { setSuccessShown(true); return 'Documentation generated successfully!'; })() :
+                     job.status === 'COMPLETED' ? 'Documentation generated successfully!' :
                     job.status === 'FAILED' ? job.error || 'Generation failed' :
                     job.status === 'PROCESSING' ? `Processing... ${job.progress || 0}%` :
                     'Waiting to start...',

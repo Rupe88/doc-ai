@@ -36,10 +36,10 @@ export default function Home() {
           credentials: 'include',
         })
         const data = await response.json()
-        
+
         if (data.success && data.data?.user) {
-          // User is logged in, redirect to dashboard
-          router.push('/dashboard')
+          // User is logged in, redirect immediately without flash
+          window.location.href = '/dashboard'
           return
         }
       } catch (error) {
@@ -49,7 +49,7 @@ export default function Home() {
     }
 
     checkAuth()
-  }, [router])
+  }, [])
 
   const features = [
     {

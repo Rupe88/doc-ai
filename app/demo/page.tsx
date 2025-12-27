@@ -419,7 +419,7 @@ export default function DemoPage() {
                     <ul className="space-y-2">
                       {demoData.security.recommendations.map((rec, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
-                          <ArrowRight className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" />
+                          <span className="w-2 h-2 bg-indigo-400 rounded-full mt-2 flex-shrink-0"></span>
                           {rec}
                         </li>
                       ))}
@@ -489,9 +489,7 @@ export default function DemoPage() {
               href="/api/github/connect"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
             >
-              <Github className="w-5 h-5" />
               Connect GitHub - It's Free
-              <ArrowRight className="w-5 h-5" />
             </a>
             <p className="text-slate-500 text-sm mt-3">
               No credit card required. 4 repos free forever.

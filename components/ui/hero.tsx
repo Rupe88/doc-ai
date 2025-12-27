@@ -79,7 +79,6 @@ export function Hero() {
               >
                 <Link href="/api/github/connect" className="flex items-center gap-3">
                   <span>Try DocAI Free</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
             </div>
