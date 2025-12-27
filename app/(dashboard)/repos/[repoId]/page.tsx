@@ -34,6 +34,7 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
     jobId?: string
     message?: string
   }>({ status: 'idle' })
+  const [streamActive, setStreamActive] = useState(false)
 
   useEffect(() => {
     fetchDocs()
@@ -41,21 +42,26 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
   }, [params.repoId])
 
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+
     // Poll for generation status if generating
     if (generationStatus.status === 'pending' || generationStatus.status === 'processing') {
-      const interval = setInterval(() => {
-        if (generationStatus.jobId) {
+      interval = setInterval(() => {
+        if (generationStatus.jobId && generationStatus.status !== 'completed') {
           checkGenerationStatus(generationStatus.jobId)
         }
-      }, 2000)
-
-      return () => clearInterval(interval)
+      }, 3000) // Increased from 2000ms to reduce server load
     } else if (generationStatus.status === 'completed') {
       const timeout = setTimeout(() => {
         fetchDocs()
         setGenerationStatus({ status: 'idle' })
-      }, 1000)
+        setSuccessShown(false) // Reset for next generation
+      }, 2000) // Increased from 1000ms
       return () => clearTimeout(timeout)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
     }
   }, [generationStatus.status, generationStatus.jobId])
 
@@ -95,8 +101,14 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
   }
 
   const handleGenerateDocs = async () => {
+    if (streamActive) {
+      console.warn('Generation already in progress')
+      return
+    }
+
     setGenerating(true)
     setSuccessShown(false)
+    setStreamActive(true)
     setGenerationStatus({ status: 'processing', progress: 5, message: 'Starting generation...' })
 
     try {
@@ -183,12 +195,14 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
                       message: data.message,
                       jobId: data.jobId,
                     })
-                    // Let the useEffect handle the reset to avoid duplicate messages
+                    setSuccessShown(true)
                     setGenerating(false)
+                    setStreamActive(false)
                     clearInterval(timeoutCheck)
                     return
                   } else if (data.type === 'error') {
                     clearInterval(timeoutCheck)
+                    setStreamActive(false)
                     throw new Error(data.message)
                   }
                 } catch (parseError) {
@@ -250,6 +264,7 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
         message: error instanceof Error ? error.message : 'Failed to generate documentation',
       })
       setGenerating(false)
+      setStreamActive(false)
     }
   }
 
@@ -263,25 +278,39 @@ export default function RepoPage({ params }: { params: { repoId: string } }) {
         const data = await response.json()
         if (data.success && data.data) {
           const job = data.data
+
+          // Prevent duplicate success messages
+          if (job.status === 'COMPLETED' && generationStatus.status === 'completed') {
+            return // Already completed, don't update
+          }
+
           setGenerationStatus({
             status: job.status === 'COMPLETED' ? 'completed' :
                    job.status === 'FAILED' ? 'failed' :
                    job.status === 'PROCESSING' ? 'processing' : 'pending',
             progress: job.progress || 0,
             jobId,
-            message: job.status === 'COMPLETED' ? (successShown ? 'Documentation generated successfully!' : (() => { setSuccessShown(true); return 'Documentation generated successfully!'; })()) :
+            message: job.status === 'COMPLETED' ? 'Documentation generated successfully!' :
                     job.status === 'FAILED' ? job.error || 'Generation failed' :
                     job.status === 'PROCESSING' ? `Processing... ${job.progress || 0}%` :
                     'Waiting to start...',
           })
 
-          if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+          if (job.status === 'COMPLETED') {
+            setSuccessShown(true)
+            setGenerating(false)
+          } else if (job.status === 'FAILED') {
             setGenerating(false)
           }
         }
       }
     } catch (error) {
       console.error('Failed to check generation status:', error)
+      setGenerationStatus({
+        status: 'failed',
+        message: 'Failed to check generation status',
+      })
+      setGenerating(false)
     }
   }
 

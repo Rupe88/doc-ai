@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RepoCard } from '@/components/dashboard/RepoCard'
 import { Button } from '@/components/ui/button'
-import { Plus, Search, Sparkles, TrendingUp } from 'lucide-react'
-import { useAuth, redirectToLogin } from '@/lib/utils/auth-client'
+import { Plus, Search, Sparkles, TrendingUp, User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { useAuth, redirectToLogin, logout } from '@/lib/utils/auth-client'
 
 export default function DashboardPage() {
   const { user, loading: authLoading, isAuthenticated } = useAuth()
@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -30,7 +31,21 @@ export default function DashboardPage() {
     }
 
     window.addEventListener('repo-connected', handleRepoConnected)
-    return () => window.removeEventListener('repo-connected', handleRepoConnected)
+
+    // Close profile dropdown when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.profile-dropdown')) {
+        setProfileOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      window.removeEventListener('repo-connected', handleRepoConnected)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [authLoading, isAuthenticated])
 
   const fetchRepos = async () => {
@@ -58,6 +73,10 @@ export default function DashboardPage() {
   const filteredRepos = repos.filter((repo) =>
     repo.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const handleLogout = async () => {
+    await logout()
+  }
 
   if (authLoading) {
     return (
@@ -96,15 +115,71 @@ export default function DashboardPage() {
                   {repos.length} repositories
                 </p>
               </div>
-              <Button
-                asChild
-                className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg"
-              >
-                <a href="/api/github/connect">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New
-                </a>
-              </Button>
+
+              {/* Profile Section */}
+              <div className="flex items-center space-x-4">
+                <Button
+                  asChild
+                  className="bg-brand-600 hover:bg-brand-700 text-white border-0 shadow-lg"
+                >
+                  <a href="/api/github/connect">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Connect Repository
+                  </a>
+                </Button>
+
+                {/* User Profile Dropdown */}
+                <div className="relative profile-dropdown">
+                  <button
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-md transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-medium">
+                      {user?.name || user?.email || 'User'}
+                    </span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {profileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg z-50"
+                    >
+                      <div className="py-1">
+                        <div className="px-4 py-2 border-b border-gray-600">
+                          <p className="text-sm font-medium text-white">
+                            {user?.name || 'User'}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {user?.email}
+                          </p>
+                        </div>
+
+                        <a
+                          href="/settings"
+                          className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                        >
+                          <Settings className="w-4 h-4 mr-3" />
+                          Settings
+                        </a>
+
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
+                        >
+                          <LogOut className="w-4 h-4 mr-3" />
+                          Sign out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -193,7 +268,7 @@ export default function DashboardPage() {
             >
               <a href="/api/github/connect">
                 <Plus className="w-4 h-4 mr-2" />
-                Add repository
+                Connect Repository
               </a>
             </Button>
           </motion.div>
