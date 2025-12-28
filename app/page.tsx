@@ -76,6 +76,12 @@ export default function Home() {
             case 'invalid_redirect_uri':
               setAuthError('Invalid redirect URI configuration. Please check your NEXT_PUBLIC_APP_URL format.')
               break
+            case 'database_error':
+              setAuthError('Database connection error. Please check your DATABASE_URL configuration.')
+              break
+            case 'encryption_error':
+              setAuthError('Encryption configuration error. Please check your ENCRYPTION_KEY.')
+              break
             default:
               setAuthError('An authentication error occurred. Please try again.')
           }

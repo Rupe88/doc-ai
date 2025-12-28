@@ -200,19 +200,26 @@ export async function GET(request: NextRequest) {
 
     return response
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+
     console.error('❌ GitHub authentication failed:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+      error: errorMessage,
+      stack: errorStack?.substring(0, 500), // Limit stack trace
       clientId: clientId ? 'SET' : 'MISSING',
       clientSecret: clientSecret ? 'SET' : 'MISSING',
       redirectUri,
       code: code ? 'PRESENT' : 'MISSING',
       appUrl: appUrl ? 'SET' : 'MISSING',
+      // Check for common error patterns
+      isPrismaError: errorMessage.includes('Prisma') || errorMessage.includes('connect'),
+      isNetworkError: errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED'),
+      isEncryptionError: errorMessage.includes('encrypt') || errorMessage.includes('decrypt'),
     })
 
     logger.error('GitHub authentication error', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+      error: errorMessage,
+      stack: errorStack,
       clientId: clientId ? 'SET' : 'MISSING',
       clientSecret: clientSecret ? 'SET' : 'MISSING',
       redirectUri,
@@ -223,15 +230,20 @@ export async function GET(request: NextRequest) {
     // Provide more specific error messages
     let errorType = 'auth_failed'
     if (error instanceof Error) {
-      console.log('🔍 Analyzing error type:', error.message)
-      if (error.message.includes('fetch')) {
+      console.log('🔍 Analyzing error type:', errorMessage.substring(0, 200))
+
+      if (errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED')) {
         errorType = 'network_error'
-      } else if (error.message.includes('invalid_client')) {
+      } else if (errorMessage.includes('invalid_client')) {
         errorType = 'invalid_client'
-      } else if (error.message.includes('redirect_uri_mismatch')) {
+      } else if (errorMessage.includes('redirect_uri_mismatch')) {
         errorType = 'redirect_uri_mismatch'
-      } else if (error.message.includes('Prisma')) {
+      } else if (errorMessage.includes('Prisma') || errorMessage.includes('connect') || errorMessage.includes('database')) {
         errorType = 'database_error'
+        console.log('🚨 DATABASE ERROR DETECTED - Check DATABASE_URL')
+      } else if (errorMessage.includes('encrypt') || errorMessage.includes('decrypt')) {
+        errorType = 'encryption_error'
+        console.log('🚨 ENCRYPTION ERROR DETECTED - Check ENCRYPTION_KEY')
       }
     }
 
