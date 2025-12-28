@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
     scope,
     clientId: clientId ? 'SET' : 'MISSING',
     appUrl: appUrl ? 'SET' : 'MISSING',
+    authUrl: authUrl.substring(0, 100) + '...', // Log partial URL for debugging
   })
+
+  console.log('🔄 Redirecting to GitHub OAuth:', authUrl.substring(0, 100) + '...')
 
   return NextResponse.redirect(authUrl)
 }
