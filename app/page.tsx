@@ -67,6 +67,15 @@ export default function Home() {
             case 'redirect_uri_mismatch':
               setAuthError('Redirect URI mismatch. Please update your GitHub app redirect URI to match your deployment URL.')
               break
+            case 'oauth_not_configured':
+              setAuthError('GitHub OAuth is not configured. Please check your environment variables.')
+              break
+            case 'app_url_not_configured':
+              setAuthError('App URL is not configured. Please set NEXT_PUBLIC_APP_URL in your environment variables.')
+              break
+            case 'invalid_redirect_uri':
+              setAuthError('Invalid redirect URI configuration. Please check your NEXT_PUBLIC_APP_URL format.')
+              break
             default:
               setAuthError('An authentication error occurred. Please try again.')
           }

@@ -183,6 +183,56 @@
    http://localhost:3000
    ```
 
+## 🚀 Production Deployment
+
+### Critical Environment Variables for Production
+
+For production deployment, these environment variables **MUST** be set correctly:
+
+```bash
+# 🔴 CRITICAL: Your production domain (main cause of OAuth failures)
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
+
+# GitHub OAuth Configuration
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# Database
+DATABASE_URL=your_production_database_url
+
+# Security (generate with: openssl rand -hex 32)
+JWT_SECRET=your_jwt_secret_at_least_32_chars
+ENCRYPTION_KEY=your_encryption_key_at_least_32_chars
+```
+
+### GitHub OAuth Setup for Production
+
+1. **Go to GitHub OAuth Apps**: https://github.com/settings/developers
+2. **Create or Update OAuth App**
+3. **Set Authorization callback URL to**:
+   ```
+   https://yourdomain.com/api/auth/callback/github
+   ```
+4. **Copy credentials** to your production environment
+
+### Common Production OAuth Issues & Fixes
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `redirect_uri_mismatch` | `NEXT_PUBLIC_APP_URL` doesn't match GitHub callback URL | Set `NEXT_PUBLIC_APP_URL` to your production domain |
+| `invalid_client` | Wrong GitHub Client ID/Secret | Check GitHub OAuth app credentials |
+| Auth fails silently | Missing environment variables | Ensure all required env vars are set |
+| `oauth_not_configured` | GitHub credentials missing | Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` |
+
+### Deployment Checklist
+
+- [ ] `NEXT_PUBLIC_APP_URL` set to production domain (e.g., `https://myapp.com`)
+- [ ] GitHub OAuth callback URL updated to: `https://yourdomain.com/api/auth/callback/github`
+- [ ] GitHub Client ID and Secret configured
+- [ ] Database URL set for production
+- [ ] JWT and encryption secrets generated
+- [ ] Test OAuth flow in production environment
+
 ## 📁 Project Structure
 
 ```

@@ -89,7 +89,7 @@ PADDLE_WEBHOOK_SECRET=
 3. Fill in:
    - Application name: "AI Codebase Docs"
    - Homepage URL: `http://localhost:3000`
-   - Authorization callback URL: `http://localhost:3000/api/auth/github`
+   - Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
 4. Copy Client ID and Client Secret to `.env.local`
 5. Generate a webhook secret: `openssl rand -hex 20`
 

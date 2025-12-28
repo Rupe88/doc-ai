@@ -1,0 +1,19 @@
+# Vercel Environment Variables for Production
+# Add these in your Vercel dashboard: https://vercel.com/dashboard
+
+NEXT_PUBLIC_APP_URL=https://doc-ai-kappa.vercel.app
+
+# GitHub OAuth (get from https://github.com/settings/developers)
+GITHUB_CLIENT_ID=your_github_client_id_here
+GITHUB_CLIENT_SECRET=your_github_client_secret_here
+
+# Database (Supabase, Neon, etc.)
+DATABASE_URL=your_production_database_url_here
+
+# Security (generate random strings)
+JWT_SECRET=your_random_jwt_secret_here
+ENCRYPTION_KEY=your_random_encryption_key_here
+
+# Optional: AI providers, Redis, etc.
+# GEMINI_API_KEY=your_gemini_key_if_needed
+# UPSTASH_REDIS_REST_URL=your_redis_url_if_needed

@@ -29,15 +29,36 @@ export async function GET(request: NextRequest) {
   // Validate environment variables
   const clientId = process.env.GITHUB_CLIENT_ID
   const clientSecret = process.env.GITHUB_CLIENT_SECRET
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
 
   if (!clientId || !clientSecret) {
-    logger.error('GitHub OAuth not configured')
+    logger.error('GitHub OAuth not configured', {
+      clientId: clientId ? 'SET' : 'MISSING',
+      clientSecret: clientSecret ? 'SET' : 'MISSING',
+    })
     return NextResponse.redirect(
       new URL('/?error=oauth_not_configured', request.url)
     )
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/github`
+  if (!appUrl) {
+    logger.error('NEXT_PUBLIC_APP_URL not configured')
+    return NextResponse.redirect(
+      new URL('/?error=app_url_not_configured', request.url)
+    )
+  }
+
+  const redirectUri = `${appUrl}/api/auth/callback/github`
+
+  // Validate redirect URI format
+  try {
+    new URL(redirectUri)
+  } catch {
+    logger.error('Invalid redirect URI format', { redirectUri })
+    return NextResponse.redirect(
+      new URL('/?error=invalid_redirect_uri', request.url)
+    )
+  }
 
   try {
     // Exchange code for access token

@@ -9,17 +9,19 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error')
 
   if (error) {
-    return NextResponse.redirect(new URL(`/login?error=${error}`, request.url))
+    return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error)}`, request.url))
   }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login?error=no_code', request.url))
+    return NextResponse.redirect(new URL('/?error=no_code', request.url))
   }
 
+  // Declare variables outside try block for error logging
+  const clientId = process.env.GITHUB_CLIENT_ID
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET
+  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/github`
+
   try {
-    const clientId = process.env.GITHUB_CLIENT_ID
-    const clientSecret = process.env.GITHUB_CLIENT_SECRET
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/github`
 
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -80,8 +82,29 @@ export async function GET(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('GitHub auth error:', error)
-    return NextResponse.redirect(new URL('/login?error=auth_failed', request.url))
+    console.error('GitHub authentication error:', {
+      error: error instanceof Error ? error.message : String(error),
+      clientId: clientId ? 'SET' : 'MISSING',
+      clientSecret: clientSecret ? 'SET' : 'MISSING',
+      redirectUri,
+      code: code ? 'PRESENT' : 'MISSING',
+    })
+
+    // Provide more specific error messages
+    let errorType = 'auth_failed'
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        errorType = 'network_error'
+      } else if (error.message.includes('invalid_client')) {
+        errorType = 'invalid_client'
+      } else if (error.message.includes('redirect_uri_mismatch')) {
+        errorType = 'redirect_uri_mismatch'
+      }
+    }
+
+    return NextResponse.redirect(
+      new URL(`/?error=${errorType}`, request.url)
+    )
   }
 }
 

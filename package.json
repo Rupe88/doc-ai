@@ -16,6 +16,7 @@
     "upgrade-testing": "npx tsx scripts/temp-upgrade-for-testing.ts",
     "downgrade-testing": "npx tsx scripts/temp-upgrade-for-testing.ts down",
     "test-exact-code": "npx tsx scripts/test-exact-code.ts",
+    "test-oauth": "node scripts/test-oauth.js",
     "postinstall": "prisma generate"
   },
   "engines": {
